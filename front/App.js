@@ -10,6 +10,9 @@ import MyPage from "./pages/MyPage"; // 마이페이지
 import Community from "./pages/CommunityPage"; // 커뮤니티 페이지
 import ChatPage from "./pages/ChatPage"; //채팅 페이지
 
+import { ko, registerTranslation } from "react-native-paper-dates";
+registerTranslation("ko", ko);
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {

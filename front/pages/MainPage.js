@@ -1,8 +1,7 @@
-import React, { useRef, useMemo, useState } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import {
     TextInput,
     StyleSheet,
-    SafeAreaView,
     View,
     StatusBar,
     Text,
@@ -10,21 +9,24 @@ import {
     ScrollView,
     Modal,
     Animated,
-    Easing,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SCREEN_WIDTH, SCREEN_HEIGHT, normalize } from "../utils/normalize";
-
-/*webview */
+import debounce from "lodash/debounce";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+// 웹뷰
 import { WebView } from "react-native-webview";
-/*navigationBar */
+
+// 네비게이션바
 import NavigationBar from "../components/NavigationBar/NavigationBar";
-/*bottomSheet */
+// 바텀시트
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-/*Buttons*/
-// import GpsButton from "../components/GpsButton";
+// 컴포넌트
 import AlarmButton from "../components/AlarmButton";
+import { PaperProvider } from "react-native-paper";
+import AddressSearcher from "../components/AddressSearchModal";
 
 export default function MainPage() {
     // 검색 타입 드롭박스 상태 변수
@@ -42,7 +44,7 @@ export default function MainPage() {
             SCREEN_HEIGHT / SCREEN_WIDTH > 1.8
                 ? SCREEN_HEIGHT * 0.11 // 일반화면
                 : SCREEN_HEIGHT * 0.13, // width가 넓은화면
-            SCREEN_HEIGHT * 0.5,
+            SCREEN_HEIGHT * 0.35,
             SCREEN_HEIGHT / SCREEN_WIDTH > 1.8
                 ? SCREEN_HEIGHT * 0.78 // 일반화면
                 : SCREEN_HEIGHT * 0.75, // width가 넓은화면
@@ -52,56 +54,10 @@ export default function MainPage() {
 
     //검색창 모달 변수
     const [modalVisible, setModalVisible] = useState(false);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
 
-    // 모달 애니메이션
     const openModal = () => {
         if (searchType === "주소") {
             setModalVisible(true);
-            fadeAnim.setValue(1);
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 500,
-                // easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-                useNativeDriver: true,
-            }).start();
-        }
-    };
-    const closeModal = () => {
-        fadeAnim.setValue(0);
-        setModalVisible(false);
-
-        //모달이 닫힐 때 검색 결과가 저장된 배열 초기화
-        setSearchResult([]);
-        setSearchQuery("");
-    };
-
-    //검색 모달 검색 카카오 api 호출
-    const [searchQuery, setSearchQuery] = useState("");
-    const [searchResult, setSearchResult] = useState([]);
-    const KakaoKeywordSearch = async () => {
-        // 빈문자열, 공백일 때는 api 횟수 낭비하지않기 위해 함수 종료
-        if (!searchQuery.trim()) {
-            setSearchResult([]);
-            setSearchQuery("");
-            return;
-        }
-
-        const url = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(searchQuery)}`;
-
-        try {
-            const response = await fetch(url, {
-                method: "GET",
-                headers: {
-                    Authorization: "KakaoAK 28e9379e441b1df3a42a71c481b40210",
-                },
-            });
-
-            const data = await response.json();
-            setSearchResult(data);
-        } catch (error) {
-            //에러발생 예외처리 수정필요
-            console.log(error);
         }
     };
 
@@ -110,177 +66,122 @@ export default function MainPage() {
 
     return (
         <GestureHandlerRootView>
-            <SafeAreaView style={styles.container}>
-                <StatusBar barStyle="dark-content" backgroundColor="#f8f8ff" />
+            <SafeAreaProvider style={styles.container}>
+                <PaperProvider>
+                    <StatusBar barStyle="dark-content" backgroundColor="#f8f8ff" />
 
-                {/*헤더 타이틀*/}
-                <View style={styles.header}>
-                    <Text style={styles.title}>홈</Text>
-                    <AlarmButton />
-                </View>
+                    {/*헤더 타이틀*/}
+                    <View style={styles.header}>
+                        <Text style={styles.title}>홈</Text>
+                        <AlarmButton />
+                    </View>
 
-                {/* 검색창 */}
-                <View style={styles.SearchBarContainer}>
-                    <View style={styles.searchRow}>
-                        <TouchableOpacity
-                            style={styles.dropdownButton}
-                            onPress={() => setDropdownVisible(!dropdownVisible)}
-                        >
-                            <Text style={styles.dropdownText}>▼ {searchType}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={openModal}>
-                            <TextInput
+                    {/* 검색창 */}
+                    <View style={styles.SearchBarContainer}>
+                        <View style={styles.searchRow}>
+                            <TouchableOpacity
+                                style={styles.dropdownButton}
+                                onPress={() => setDropdownVisible(!dropdownVisible)}
+                            >
+                                <Text style={styles.dropdownText}>▼ {searchType}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={openModal}>
+                                <TextInput
+                                    style={[
+                                        styles.searchBar,
+                                        {
+                                            width:
+                                                searchType === "주소"
+                                                    ? SCREEN_WIDTH - SCREEN_WIDTH * 0.253
+                                                    : SCREEN_WIDTH - SCREEN_WIDTH * 0.32,
+                                        },
+                                    ]}
+                                    placeholder={`${searchType}를 입력하세요`}
+                                    value={searchText}
+                                    onChangeText={setSearchText}
+                                    editable={searchType !== "주소"}
+                                    pointerEvents="none"
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        {dropdownVisible && (
+                            <View
                                 style={[
-                                    styles.searchBar,
+                                    styles.dropdownMenu,
                                     {
-                                        width:
-                                            searchType === "주소"
-                                                ? SCREEN_WIDTH - SCREEN_WIDTH * 0.253
-                                                : SCREEN_WIDTH - SCREEN_WIDTH * 0.32,
+                                        width: SCREEN_WIDTH * 0.261,
+                                        marginTop: SCREEN_HEIGHT * 0.004,
+                                        marginLeft: SCREEN_WIDTH * 0.021,
                                     },
                                 ]}
-                                placeholder={`${searchType}를 입력하세요`}
-                                value={searchText}
-                                onChangeText={setSearchText}
-                                editable={searchType !== "주소"}
-                                pointerEvents="none"
-                            />
-                        </TouchableOpacity>
+                            >
+                                {["주소", "등록번호"].map((item) => (
+                                    <TouchableOpacity
+                                        key={item}
+                                        onPress={() => {
+                                            setSearchType(item);
+                                            setDropdownVisible(false);
+                                            setSearchText("");
+                                        }}
+                                        style={[styles.dropdownItem, { padding: SCREEN_WIDTH * 0.021 }]}
+                                    >
+                                        <Text style={{ fontSize: SCREEN_WIDTH * 0.032 }}>{item}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
                     </View>
-                    {dropdownVisible && (
-                        <View
-                            style={[
-                                styles.dropdownMenu,
-                                {
-                                    width: SCREEN_WIDTH * 0.261,
-                                    marginTop: SCREEN_HEIGHT * 0.004,
-                                    marginLeft: SCREEN_WIDTH * 0.021,
-                                },
-                            ]}
-                        >
-                            {["주소", "등록번호"].map((item) => (
-                                <TouchableOpacity
-                                    key={item}
-                                    onPress={() => {
-                                        setSearchType(item);
-                                        setDropdownVisible(false);
-                                        setSearchText("");
-                                    }}
-                                    style={[styles.dropdownItem, { padding: SCREEN_WIDTH * 0.021 }]}
-                                >
-                                    <Text style={{ fontSize: SCREEN_WIDTH * 0.032 }}>{item}</Text>
+
+                    {/* 주소 검색 모달 */}
+                    <AddressSearcher
+                        modalVisible={modalVisible}
+                        setModalVisible={setModalVisible}
+                        webViewRef={webViewRef}
+                    />
+
+                    {/* 필터 버튼*/}
+                    <View style={styles.filterRowContainer}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {["전체", "실종", "목격", "공고중", "입양대기"].map((item) => (
+                                <TouchableOpacity key={item} style={styles.filterButton}>
+                                    <Text style={styles.filterButtonText}>{item}</Text>
                                 </TouchableOpacity>
                             ))}
-                        </View>
+                        </ScrollView>
+                    </View>
+
+                    {/* WebView (카카오) */}
+                    <View style={styles.webviewContainer}>
+                        <WebView
+                            ref={webViewRef}
+                            originWhitelist={["*"]}
+                            source={{
+                                uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?",
+                            }}
+                            style={styles.webview}
+                            javaScriptEnabled={true}
+                        />
+                    </View>
+
+                    {/* 바텀시트 */}
+                    {!modalVisible && (
+                        <BottomSheet
+                            ref={bottomSheetRef}
+                            index={1}
+                            snapPoints={snapPoints}
+                            onChange={(index) => {
+                                setSheetIndex(index);
+                            }}
+                            enableOverDrag={sheetIndex !== 0}
+                        >
+                            <BottomSheetView style={styles.bottomSheetContainer}>{/* 바텀시트 내용 */}</BottomSheetView>
+                        </BottomSheet>
                     )}
-                </View>
 
-                {/* 검색 모달*/}
-                <Modal visible={modalVisible} animationType="none" transparent onRequestClose={closeModal}>
-                    <Animated.View
-                        style={[
-                            styles.modalOverlayWrap,
-                            {
-                                opacity: fadeAnim,
-                            },
-                        ]}
-                    >
-                        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeModal} />
-                        <View style={styles.modalContent}>
-                            {/* 모달 내부 검색바*/}
-                            <View style={styles.SearchBarContainerModal}>
-                                <View
-                                    style={{
-                                        flexDirection: "row",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    <TouchableOpacity onPress={closeModal} style={{ paddingRight: 20 }}>
-                                        <Ionicons name="arrow-back" size={normalize(24)} color="black" />
-                                    </TouchableOpacity>
-                                    <TextInput
-                                        style={[
-                                            styles.searchBar,
-                                            {
-                                                width: SCREEN_WIDTH - SCREEN_WIDTH * 0.253,
-                                            },
-                                        ]}
-                                        contextMenuHidden={true}
-                                        placeholder={`주소를 입력하세요`}
-                                        value={searchQuery}
-                                        onChangeText={setSearchQuery}
-                                        onSubmitEditing={KakaoKeywordSearch}
-                                    />
-                                </View>
-                            </View>
-                            <ScrollView style={styles.searchResultContainer}>
-                                {searchResult.documents &&
-                                    searchResult.documents.map((item, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.searchResultItem}
-                                            onPress={() => {
-                                                closeModal();
-                                                if (webViewRef.current) {
-                                                    webViewRef.current.postMessage(
-                                                        JSON.stringify({ x: item.x, y: item.y })
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <Text style={styles.placeName}>{item.place_name}</Text>
-                                            <Text style={styles.roadAddress}>
-                                                {item.road_address_name || item.address_name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                            </ScrollView>
-                        </View>
-                    </Animated.View>
-                </Modal>
-
-                {/* 필터 버튼*/}
-                <View style={styles.filterRowContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        {["전체", "실종", "목격", "공고중", "입양대기"].map((item) => (
-                            <TouchableOpacity key={item} style={styles.filterButton}>
-                                <Text style={styles.filterButtonText}>{item}</Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
-                </View>
-
-                {/* WebView (카카오) */}
-                <View style={styles.webviewContainer}>
-                    <WebView
-                        ref={webViewRef}
-                        source={{
-                            uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html",
-                        }}
-                        style={styles.webview}
-                        javaScriptEnabled={true}
-                    />
-                </View>
-
-                {/* 바텀시트 */}
-                {!modalVisible && (
-                    <BottomSheet
-                        ref={bottomSheetRef}
-                        index={1}
-                        snapPoints={snapPoints}
-                        onChange={(index) => {
-                            setSheetIndex(index);
-                        }}
-                        enableOverDrag={sheetIndex !== 0}
-                    >
-                        <BottomSheetView style={styles.bottomSheetContainer}>{/* 바텀시트 내용 */}</BottomSheetView>
-                    </BottomSheet>
-                )}
-
-                {/* 하단바 */}
-                <NavigationBar />
-            </SafeAreaView>
+                    {/* 하단바 */}
+                    <NavigationBar />
+                </PaperProvider>
+            </SafeAreaProvider>
         </GestureHandlerRootView>
     );
 }
@@ -378,14 +279,6 @@ const styles = StyleSheet.create({
         width: "100%",
         height: "100%",
     },
-
-    // gpsButtonContainer: {
-    //     position: "absolute",
-    //     left: 10,
-    //     bottom: 10,
-    //     zIndex: 5,
-    // },
-
     // 필터 버튼 행
     filterRowContainer: {
         position: "absolute",
@@ -396,7 +289,6 @@ const styles = StyleSheet.create({
         paddingRight: SCREEN_WIDTH * 0.027,
         zIndex: 4,
     },
-
     //필터 버튼
     filterButton: {
         flexDirection: "row",
@@ -455,26 +347,6 @@ const styles = StyleSheet.create({
     roadAddress: {
         fontSize: normalize(12),
         color: "#666",
-    },
-    modalOverlayWrap: {
-        flex: 1,
-        backgroundColor: "transparent",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "#fff",
-        width: "100%",
-        height: "100%",
-    },
-    modalOverlay: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.2)",
     },
     modalContent: {
         flex: 1,

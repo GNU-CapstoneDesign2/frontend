@@ -1,12 +1,27 @@
 //목격 제보 페이지
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Alert, Platform, Image, ScrollView, TextInput, TouchableOpacity } from "react-native";
-
+import {
+    View,
+    Text,
+    StyleSheet,
+    Alert,
+    Platform,
+    Image,
+    ScrollView,
+    TouchableOpacity,
+    Modal,
+    TouchableWithoutFeedback,
+} from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { normalize, SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
+import DatePicker from "../components/DatePicker";
+import TimePicker from "../components/TimePicker";
+import AddressPicker from "../components/AddressPicker";
+import { WebView } from "react-native-webview";
+import { TextInput } from "react-native-paper";
 
 export default function MissingReportPage() {
     const [imageUri, setImageUri] = useState(null);
@@ -14,6 +29,10 @@ export default function MissingReportPage() {
         witnessDate: "", //목격 날짜
         witnessTime: "", //목격 시간
         location: "", //목격 장소
+        coordinates: {
+            latitude: "", // 위도
+            longitude: "", // 경도
+        },
         description: "", //설명
     });
     const navigation = useNavigation();
@@ -30,22 +49,40 @@ export default function MissingReportPage() {
         })();
     }, []);
 
-    const handleCameraPress = async () => {
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const handleSelectImagePress = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
+                allowsMultipleSelection: true,
+                selectionLimit: 5, //최대 5장 선택
                 quality: 1,
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
-                const selectedImage = result.assets[0].uri;
-                setImageUri(selectedImage);
+                const selectedImages = result.assets.map((asset) => asset.uri);
+                setImageUri(selectedImages);
+                console.log(selectedImages);
             }
         } catch (error) {
-            console.error("사진 선택 오류:", error);
             Alert.alert("오류", "사진을 불러오는 중 문제가 발생했습니다.");
+        }
+    };
+
+    const handleOpenCamera = async () => {
+        try {
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 1,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const selectedImages = result.assets.map((asset) => asset.uri);
+                setImageUri(selectedImages);
+                console.log(selectedImages);
+            }
+        } catch (error) {
+            Alert.alert("오류", "카메라를 여는 중 문제가 발생했습니다.");
         }
     };
 
@@ -59,62 +96,104 @@ export default function MissingReportPage() {
                 <Text style={styles.title}>목격 제보</Text>
             </View>
 
-            {/* 컨텐츠 스크롤 뷰 */}
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* 카메라/갤러리 */}
+                {/* 이미지 선택 컨테이너 */}
                 <View style={styles.imageSection}>
                     {imageUri ? (
                         <View style={styles.imagePreviewContainer}>
-                            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-                            <TouchableOpacity style={styles.changeImageButton} onPress={handleCameraPress}>
+                            {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
+                            <Image source={{ uri: imageUri[0] }} style={styles.imagePreview} />
+
+                            <TouchableOpacity style={styles.changeImageButton} onPress={() => setIsModalVisible(true)}>
                                 <Text style={styles.changeImageText}>이미지 변경</Text>
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        <ImageSelectButton onPress={handleCameraPress} />
+                        <ImageSelectButton onPress={() => setIsModalVisible(true)} />
                     )}
                 </View>
+                {/* 카메라 ,갤러리 선택 모달 */}
+                <Modal
+                    visible={isModalVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setIsModalVisible(false)}
+                >
+                    <TouchableWithoutFeedback onPress={() => setIsModalVisible(false)}>
+                        <View style={styles.modalOverlay} />
+                    </TouchableWithoutFeedback>
+                    <View style={styles.modalContent}>
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setIsModalVisible(false);
+                                handleOpenCamera();
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>카메라로 촬영</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setIsModalVisible(false);
+                                handleSelectImagePress();
+                            }}
+                        >
+                            <Text style={styles.modalButtonText}>갤러리에서 선택</Text>
+                        </TouchableOpacity>
+                    </View>
+                </Modal>
 
                 {/* 입력 폼 */}
                 <View style={styles.formContainer}>
+                    <Text style={styles.label}>목격 날짜/시간</Text>
                     <View style={styles.inputDateTime}>
-                        <View style={[styles.inputGroup, styles.dateTimeGroup]}>
-                            <Text style={styles.label}>목격 날짜</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="ex) 2025.01.23"
-                                value={formData.missingDate}
-                                onChangeText={(text) => setFormData({ ...formData, missingDate: text })}
-                            />
-                        </View>
-
-                        <View style={[styles.inputGroup, styles.dateTimeGroup]}>
-                            <Text style={styles.label}>목격 시간</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="ex) 24 : 00"
-                                value={formData.missingTime}
-                                onChangeText={(text) => setFormData({ ...formData, missingTime: text })}
-                            />
-                        </View>
+                        <DatePicker
+                            value={formData.witnessDate}
+                            onConfirm={(formattedDate) => setFormData({ ...formData, witnessDate: formattedDate })}
+                        />
+                        <TimePicker
+                            value={formData.witnessTime}
+                            onConfirm={(formattedTime) => setFormData({ ...formData, witnessTime: formattedTime })}
+                        />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>목격 장소</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.location}
-                            onChangeText={(text) => setFormData({ ...formData, location: text })}
+
+                        <AddressPicker
+                            onChange={(lat, lng, address) =>
+                                setFormData({
+                                    ...formData,
+                                    address,
+                                    coordinates: { latitude: lat, longitude: lng },
+                                })
+                            }
                         />
-                        {/* 목격 장소 지도로 보기 */}
-                        <TouchableOpacity style={styles.mapSelectButton}>
-                            <Text style={styles.mapSelectText}>목격 장소 자동 입력</Text>
-                        </TouchableOpacity>
                     </View>
 
-                    {/* 정적 지도 영역 */}
-                    <View style={styles.mapContainer} />
+                    {/* 정적 지도 */}
+                    <View style={styles.mapContainer}>
+                        {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
+                            <WebView
+                                key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
+                                source={{
+                                    uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=staticMap",
+                                }}
+                                javaScriptEnabled={true}
+                                originWhitelist={["*"]}
+                                injectedJavaScript={`
+                                            window.staticMaplatlng = {
+                                                lat: ${formData.coordinates.latitude},
+                                                lng: ${formData.coordinates.longitude}
+                                            };
+                                            true;
+                                        `}
+                            ></WebView>
+                        )}
+                    </View>
 
+                    {/* 설명 */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>설명</Text>
                         <TextInput
@@ -123,10 +202,14 @@ export default function MissingReportPage() {
                             numberOfLines={4}
                             placeholder="특징을 적어주세요."
                             value={formData.description}
+                            mode="outlined"
+                            cursorColor="black"
+                            activeOutlineColor="grey"
                             onChangeText={(text) => setFormData({ ...formData, description: text })}
                         />
                     </View>
 
+                    {/* 제출 버튼 */}
                     <TouchableOpacity style={styles.submitButton}>
                         <Text style={styles.submitButtonText}>작성완료</Text>
                     </TouchableOpacity>
@@ -153,7 +236,7 @@ const styles = StyleSheet.create({
     title: {
         flex: 1,
         textAlign: "center",
-        fontSize: SCREEN_WIDTH * 0.048,
+        fontSize: SCREEN_WIDTH * 0.038,
         fontWeight: "bold",
         marginRight: SCREEN_WIDTH * 0.053,
     },
@@ -204,7 +287,7 @@ const styles = StyleSheet.create({
     inputDateTime: {
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: SCREEN_WIDTH * 0.04,
+        marginBottom: SCREEN_WIDTH * 0.053,
     },
     dateTimeGroup: {
         flex: 1,
@@ -220,10 +303,6 @@ const styles = StyleSheet.create({
     },
     input: {
         width: "100%",
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: SCREEN_WIDTH * 0.013,
-        paddingLeft: SCREEN_WIDTH * 0.015,
         fontSize: SCREEN_WIDTH * 0.04,
         height: SCREEN_HEIGHT * 0.06,
         backgroundColor: "white",
@@ -260,6 +339,46 @@ const styles = StyleSheet.create({
         marginBottom: SCREEN_WIDTH * 0.053,
     },
     submitButtonText: {
+        color: "#333",
+        fontSize: SCREEN_WIDTH * 0.043,
+        fontWeight: "bold",
+    },
+    // 이미지 선택 모달 버튼
+    openModalButton: {
+        backgroundColor: "#f0f0f0",
+        padding: SCREEN_WIDTH * 0.04,
+        borderRadius: SCREEN_WIDTH * 0.013,
+        alignItems: "center",
+        marginTop: SCREEN_WIDTH * 0.027,
+        marginBottom: SCREEN_WIDTH * 0.053,
+    },
+    openModalButtonText: {
+        color: "#333",
+        fontSize: SCREEN_WIDTH * 0.043,
+        fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        padding: SCREEN_WIDTH * 0.053,
+        borderTopLeftRadius: SCREEN_WIDTH * 0.027,
+        borderTopRightRadius: SCREEN_WIDTH * 0.027,
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+    },
+    modalButton: {
+        backgroundColor: "#f0f0f0",
+        padding: SCREEN_WIDTH * 0.04,
+        borderRadius: SCREEN_WIDTH * 0.013,
+        alignItems: "center",
+        marginBottom: SCREEN_WIDTH * 0.027,
+    },
+    modalButtonText: {
         color: "#333",
         fontSize: SCREEN_WIDTH * 0.043,
         fontWeight: "bold",

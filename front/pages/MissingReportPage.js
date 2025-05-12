@@ -1,18 +1,17 @@
 //실종 신고 페이지
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
     View,
     Text,
     StyleSheet,
     Alert,
-    Platform,
     Image,
     ScrollView,
-    TextInput,
     TouchableOpacity,
-    PixelRatio,
-    Dimensions,
+    Modal,
+    TouchableWithoutFeedback,
 } from "react-native";
+import { TextInput } from "react-native-paper";
 
 import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
@@ -21,232 +20,360 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { normalize, SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { PaperProvider } from "react-native-paper";
+
+import DatePicker from "../components/DatePicker";
+import TimePicker from "../components/TimePicker";
+import { formatPhoneNumber } from "../utils/formatPhoneNumber";
+
+import AddressPicker from "../components/AddressPicker";
+import WebView from "react-native-webview";
+
 export default function MissingReportPage() {
-    const [imageUri, setImageUri] = useState(null);
-    const [isGenderOpen, setIsGenderOpen] = useState(false);
     const [formData, setFormData] = useState({
-        name: "", //이름
-        breed: "", //품종
-        registrationNumber: "", //등록번호
-        gender: "암", //성별
-        missingDate: "", //실종 날짜
-        missingTime: "", //실종 시간
-        location: "", //실종 장소
-        contact: "", //연락처
-        reward: "", //사례금
-        description: "", //설명
+        state: "missing", // 글 유형
+        date: "", // 실종 일시 missingDate + missingTime 필수
+        address: "", // 실종 주소 필수
+        coordinates: {
+            //필수
+            latitude: "", // 위도
+            longitude: "", // 경도
+        },
+        petType: "", // 동물 종류 (개, 고양이) 필수
+
+        description: "", // 글 설명 ,선택
+        images: null, // 이미지 ,선택
+        name: "", // 동물 이름 ,선택
+        gender: "암", // 성별 ,선택
+        animalNum: "", // 등록번호 ,선택
+        breed: "", // 품종 ,선택
+        phone: "", // 연락처 ,선택
+        reward: "", // 사례금 ,선택
     });
+
+    const [isGenderOpen, setIsGenderOpen] = useState(false);
+    const [isSelectModalVisible, setIsSelectModalVisible] = useState(false); //이미지 선택 모달
+
     const navigation = useNavigation();
 
-    //접근 권한 및 갤러리,카메라 선택 수정 필요
     useEffect(() => {
         (async () => {
-            if (Platform.OS !== "web") {
-                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (status !== "granted") {
-                    Alert.alert("권한 요청", "사진 접근 권한이 필요합니다.");
-                }
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert("권한 요청", "사진 접근 권한이 필요합니다.");
             }
         })();
     }, []);
 
-    const handleCameraPress = async () => {
+    const handleSelectImagePress = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
+                allowsMultipleSelection: true,
+                selectionLimit: 5, //최대 5장 선택
                 quality: 1,
             });
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
-                const selectedImage = result.assets[0].uri;
-                setImageUri(selectedImage);
+                const selectedImages = result.assets.map((asset) => asset.uri);
+                setFormData({
+                    ...formData,
+                    images: selectedImages,
+                });
             }
         } catch (error) {
-            console.error("사진 선택 오류:", error);
             Alert.alert("오류", "사진을 불러오는 중 문제가 발생했습니다.");
         }
     };
 
+    const handleOpenCamera = async () => {
+        try {
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 1,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const selectedImages = result.assets.map((asset) => asset.uri);
+                setFormData({
+                    ...formData,
+                    images: selectedImages,
+                });
+            }
+        } catch (error) {
+            Alert.alert("오류", "카메라를 여는 중 문제가 발생했습니다.");
+        }
+    };
+
     return (
-        <View style={styles.container}>
-            {/* 커스텀 헤더 */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    {/* 뒤로가기 버튼 Ionicons 이 렌더링이 늦는다*/}
-                    <Ionicons name="arrow-back" size={normalize(24)} color="black" />
-                </TouchableOpacity>
-                <Text style={styles.title}>실종 신고</Text>
-            </View>
-
-            {/* 컨텐츠 스크롤 뷰 */}
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* 상단 이미지와 입력 필드 부분*/}
-                <View style={styles.topSection}>
-                    {/* 이미지 부분 */}
-                    <View style={styles.imageSection}>
-                        {imageUri ? (
-                            <View style={styles.imagePreviewContainer}>
-                                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-
-                                {/* 카메라 선택 ,갤러리 선택 react-native-gallery 로 수정 필요*/}
-                                <TouchableOpacity style={styles.changeImageButton} onPress={handleCameraPress}>
-                                    <Text style={styles.changeImageText}>이미지 변경</Text>
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            <ImageSelectButton onPress={handleCameraPress} />
-                        )}
+        <SafeAreaProvider>
+            <PaperProvider>
+                <View style={styles.container}>
+                    {/* 커스텀 헤더 */}
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <Ionicons name="arrow-back" size={normalize(24)} color="black" />
+                        </TouchableOpacity>
+                        <Text style={styles.title}>실종 신고</Text>
                     </View>
-                    {/* 기본 정보 입력 */}
-                    <View style={styles.basicInfoSection}>
-                        <View style={styles.basicInfoInputRow}>
-                            <View style={styles.labelContainer}>
-                                <Text style={styles.label}>이름</Text>
-                            </View>
-                            <TextInput
-                                style={styles.basicInfoInput}
-                                value={formData.name}
-                                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                            />
-                        </View>
 
-                        <View style={styles.basicInfoInputRow}>
-                            <View style={styles.labelContainer}>
-                                <Text style={styles.label}>품종</Text>
-                            </View>
-                            <TextInput
-                                style={styles.basicInfoInput}
-                                value={formData.breed}
-                                onChangeText={(text) => setFormData({ ...formData, breed: text })}
-                            />
-                        </View>
+                    {/* 컨텐츠 스크롤 뷰 */}
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        {/* 상단 이미지와 입력 필드 부분*/}
+                        <View style={styles.topSection}>
+                            {/* 이미지 부분 */}
+                            <View style={styles.imageSection}>
+                                {formData.images ? (
+                                    <View style={styles.imagePreviewContainer}>
+                                        {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
+                                        <Image source={{ uri: formData.images[0] }} style={styles.imagePreview} />
 
-                        <View style={styles.basicInfoInputRow}>
-                            <View style={styles.labelContainer}>
-                                <Text style={styles.label}>등록번호</Text>
+                                        <TouchableOpacity
+                                            style={styles.changeImageButton}
+                                            onPress={() => setIsSelectModalVisible(true)}
+                                        >
+                                            <Text style={styles.changeImageText}>이미지 변경</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <ImageSelectButton onPress={() => setIsSelectModalVisible(true)} />
+                                )}
                             </View>
-                            <TextInput
-                                style={styles.basicInfoInput}
-                                value={formData.registrationNumber}
-                                onChangeText={(text) => setFormData({ ...formData, registrationNumber: text })}
-                            />
-                        </View>
-
-                        <View style={styles.basicInfoInputRow}>
-                            <View style={styles.labelContainer}>
-                                <Text style={styles.label}>성별</Text>
-                            </View>
-                            <TouchableOpacity
-                                style={styles.dropdownButton}
-                                onPress={() => setIsGenderOpen(!isGenderOpen)}
+                            <Modal
+                                visible={isSelectModalVisible}
+                                transparent={true}
+                                animationType="slide"
+                                onRequestClose={() => setIsSelectModalVisible(false)}
                             >
-                                <Text style={styles.dropdownButtonText}>{formData.gender}</Text>
-                                {/* 성별 드롭다운 버튼 Ionicons 이 렌더링이 늦는다*/}
-                                <Ionicons
-                                    name={isGenderOpen ? "chevron-up" : "chevron-down"}
-                                    size={normalize(20)}
-                                    color="#666"
-                                />
-                            </TouchableOpacity>
-                            {isGenderOpen && (
-                                <View style={styles.dropdownList}>
+                                <TouchableWithoutFeedback onPress={() => setIsSelectModalVisible(false)}>
+                                    <View style={styles.modalOverlay} />
+                                </TouchableWithoutFeedback>
+                                <View style={styles.modalContent}>
                                     <TouchableOpacity
-                                        style={styles.dropdownItem}
+                                        style={styles.modalButton}
                                         onPress={() => {
-                                            setFormData({ ...formData, gender: "암" });
-                                            setIsGenderOpen(false);
+                                            setIsSelectModalVisible(false);
+                                            handleOpenCamera();
                                         }}
                                     >
-                                        <Text>암</Text>
+                                        <Text style={styles.modalButtonText}>카메라로 촬영</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
-                                        style={styles.dropdownItem}
+                                        style={styles.modalButton}
                                         onPress={() => {
-                                            setFormData({ ...formData, gender: "수" });
-                                            setIsGenderOpen(false);
+                                            setIsSelectModalVisible(false);
+                                            handleSelectImagePress();
                                         }}
                                     >
-                                        <Text>수</Text>
+                                        <Text style={styles.modalButtonText}>갤러리에서 선택</Text>
                                     </TouchableOpacity>
                                 </View>
-                            )}
+                            </Modal>
+                            {/* 기본 정보 입력 */}
+                            <View style={styles.basicInfoSection}>
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>이름</Text>
+                                    </View>
+                                    <TextInput
+                                        style={styles.basicInfoInput}
+                                        value={formData.name}
+                                        mode="outlined"
+                                        activeOutlineColor="grey"
+                                        cursorColor="black"
+                                        onChangeText={(text) => setFormData({ ...formData, name: text })}
+                                    />
+                                </View>
+
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>품종</Text>
+                                    </View>
+                                    <TextInput
+                                        style={styles.basicInfoInput}
+                                        value={formData.breed}
+                                        mode="outlined"
+                                        activeOutlineColor="grey"
+                                        cursorColor="black"
+                                        onChangeText={(text) => setFormData({ ...formData, breed: text })}
+                                    />
+                                </View>
+
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>등록번호</Text>
+                                    </View>
+                                    <TextInput
+                                        style={styles.basicInfoInput}
+                                        value={formData.animalNum}
+                                        mode="outlined"
+                                        activeOutlineColor="grey"
+                                        cursorColor="black"
+                                        keyboardType="phone-pad"
+                                        onChangeText={(text) => {
+                                            const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
+                                            setFormData({ ...formData, animalNum: formattedText });
+                                        }}
+                                    />
+                                </View>
+
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>성별</Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.dropdownButton}
+                                        onPress={() => setIsGenderOpen(!isGenderOpen)}
+                                    >
+                                        <Text style={styles.dropdownButtonText}>{formData.gender}</Text>
+                                        <Ionicons
+                                            name={isGenderOpen ? "chevron-up" : "chevron-down"}
+                                            size={normalize(20)}
+                                            color="#666"
+                                        />
+                                    </TouchableOpacity>
+                                    {isGenderOpen && (
+                                        <View style={styles.dropdownList}>
+                                            <TouchableOpacity
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    setFormData({ ...formData, gender: "암" });
+                                                    setIsGenderOpen(false);
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: SCREEN_WIDTH * 0.037 }}>암</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    setFormData({ ...formData, gender: "수" });
+                                                    setIsGenderOpen(false);
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: SCREEN_WIDTH * 0.037 }}>수</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            </View>
                         </View>
-                    </View>
+
+                        {/*나머지 입력 폼 */}
+                        <View style={styles.formContainer}>
+                            {/* 실종 날짜/ 시간 */}
+                            <View style={styles.inputRow}>
+                                <Text style={styles.label}>실종 날짜/시간</Text>
+                                <View style={styles.dateTimeRow}>
+                                    <DatePicker
+                                        value={formData.missingDate}
+                                        onConfirm={(formattedDate) =>
+                                            setFormData({ ...formData, missingDate: formattedDate })
+                                        }
+                                    />
+                                    <TimePicker
+                                        value={formData.missingTime}
+                                        onConfirm={(formattedTime) =>
+                                            setFormData({ ...formData, missingTime: formattedTime })
+                                        }
+                                    />
+                                </View>
+                            </View>
+
+                            {/* 실종 장소 선택*/}
+                            <View style={styles.inputRow}>
+                                <Text style={styles.label}>실종 장소</Text>
+                                <AddressPicker
+                                    onChange={(lat, lng, address) => {
+                                        setFormData({
+                                            ...formData,
+                                            address,
+                                            coordinates: { latitude: lat, longitude: lng },
+                                        });
+                                    }}
+                                />
+                            </View>
+
+                            {/*정적 웹뷰는 나중에 추가할 예정 */}
+                            <View style={styles.mapContainer}>
+                                {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
+                                    <WebView
+                                        key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
+                                        source={{
+                                            uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=staticMap",
+                                        }}
+                                        javaScriptEnabled={true}
+                                        originWhitelist={["*"]}
+                                        injectedJavaScript={`
+                                            window.staticMaplatlng = {
+                                                lat: ${formData.coordinates.latitude},
+                                                lng: ${formData.coordinates.longitude}
+                                            };
+                                            true;
+                                        `}
+                                    ></WebView>
+                                )}
+                            </View>
+
+                            <View style={styles.inputRow}>
+                                <Text style={styles.label}>연락처</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={formData.phone}
+                                    placeholder="010-0000-0000"
+                                    mode="outlined"
+                                    activeOutlineColor="grey"
+                                    cursorColor="black"
+                                    keyboardType="phone-pad" // 숫자 키패드 활성화
+                                    onChangeText={(text) => {
+                                        const formattedText = formatPhoneNumber(text);
+                                        setFormData({ ...formData, phone: formattedText });
+                                    }}
+                                />
+                            </View>
+
+                            <View style={styles.inputRow}>
+                                <Text style={styles.label}>사례금</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={formData.reward}
+                                    mode="outlined"
+                                    activeOutlineColor="grey"
+                                    cursorColor="black"
+                                    onChangeText={(text) => setFormData({ ...formData, reward: text })}
+                                />
+                            </View>
+
+                            <View style={styles.inputRow}>
+                                <Text style={styles.label}>설명</Text>
+                                <TextInput
+                                    style={[styles.input, styles.descriptionInput]}
+                                    multiline
+                                    numberOfLines={4}
+                                    placeholder="특징을 적어주세요."
+                                    value={formData.description}
+                                    mode="outlined"
+                                    activeOutlineColor="grey"
+                                    cursorColor="black"
+                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.submitButton}
+                                onPress={() => {
+                                    formData.date = formData.missingDate + " " + formData.missingTime;
+                                    console.log(formData);
+                                }}
+                            >
+                                <Text style={styles.submitButtonText}>작성완료</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
                 </View>
-
-                {/*나머지 입력 폼 */}
-                <View style={styles.formContainer}>
-                    <View style={styles.dateTimeRow}>
-                        <View style={[styles.inputRow, styles.halfInput]}>
-                            <Text style={styles.label}>실종 날짜</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="ex) 2025.01.23"
-                                value={formData.missingDate}
-                                onChangeText={(text) => setFormData({ ...formData, missingDate: text })}
-                            />
-                        </View>
-                        <View style={[styles.inputRow, styles.halfInput]}>
-                            <Text style={styles.label}>실종 시간</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="ex) 24 : 00"
-                                value={formData.missingTime}
-                                onChangeText={(text) => setFormData({ ...formData, missingTime: text })}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.inputRow}>
-                        <Text style={styles.label}>실종 장소</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.location}
-                            onChangeText={(text) => setFormData({ ...formData, location: text })}
-                        />
-                    </View>
-
-                    {/* 정적 지도 영역 */}
-                    <View style={styles.mapContainer} />
-
-                    <View style={styles.inputRow}>
-                        <Text style={styles.label}>연락처</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.contact}
-                            onChangeText={(text) => setFormData({ ...formData, contact: text })}
-                        />
-                    </View>
-
-                    <View style={styles.inputRow}>
-                        <Text style={styles.label}>사례금</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={formData.reward}
-                            onChangeText={(text) => setFormData({ ...formData, reward: text })}
-                        />
-                    </View>
-
-                    <View style={styles.inputRow}>
-                        <Text style={styles.label}>설명</Text>
-                        <TextInput
-                            style={[styles.input, styles.descriptionInput]}
-                            multiline
-                            numberOfLines={4}
-                            placeholder="특징을 적어주세요."
-                            value={formData.description}
-                            onChangeText={(text) => setFormData({ ...formData, description: text })}
-                        />
-                    </View>
-
-                    <TouchableOpacity style={styles.submitButton}>
-                        <Text style={styles.submitButtonText}>작성완료</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </View>
+            </PaperProvider>
+        </SafeAreaProvider>
     );
 }
 
@@ -268,7 +395,7 @@ const styles = StyleSheet.create({
     title: {
         flex: 1,
         textAlign: "center",
-        fontSize: SCREEN_WIDTH * 0.048,
+        fontSize: SCREEN_WIDTH * 0.038,
         fontWeight: "bold",
         marginRight: SCREEN_WIDTH * 0.053,
     },
@@ -286,6 +413,7 @@ const styles = StyleSheet.create({
         gap: SCREEN_WIDTH * 0.053,
         height: "18%",
     },
+    //사진 선택
     imageSection: {
         width: SCREEN_WIDTH * 0.4,
         height: SCREEN_WIDTH * 0.4,
@@ -320,6 +448,7 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: SCREEN_WIDTH * 0.032,
     },
+
     basicInfoSection: {
         flex: 1,
         height: "100%",
@@ -329,8 +458,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         position: "relative",
-        marginVertical: SCREEN_HEIGHT * 0.004,
+        marginVertical: SCREEN_HEIGHT * 0.003,
     },
+    basicInfoInput: {
+        flex: 1,
+        fontSize: SCREEN_WIDTH * 0.037,
+        height: SCREEN_HEIGHT * 0.05,
+        backgroundColor: "white",
+    },
+
     labelContainer: {
         width: SCREEN_WIDTH * 0.187,
         marginRight: SCREEN_WIDTH * 0.027,
@@ -341,38 +477,23 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         marginBottom: SCREEN_WIDTH * 0.013,
     },
-    basicInfoInput: {
-        flex: 1,
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: SCREEN_WIDTH * 0.013,
-        paddingLeft: SCREEN_WIDTH * 0.015,
-        fontSize: SCREEN_WIDTH * 0.037,
-        height: SCREEN_HEIGHT * 0.05,
-        backgroundColor: "white",
-    },
     dateTimeRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: SCREEN_WIDTH * 0.04,
-        marginTop: SCREEN_WIDTH * 0.053,
     },
-    halfInput: {
-        flex: 1,
-    },
+
     inputRow: {
-        marginBottom: SCREEN_WIDTH * 0.053,
+        width: "100%",
+        marginBottom: SCREEN_WIDTH * 0.035,
     },
     input: {
+        flex: 1,
         width: "100%",
-        borderWidth: 1,
-        borderColor: "#ddd",
-        borderRadius: SCREEN_WIDTH * 0.013,
-        paddingLeft: SCREEN_WIDTH * 0.015,
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
         backgroundColor: "white",
     },
+    //성별
     dropdownButton: {
         flex: 1,
         flexDirection: "row",
@@ -392,13 +513,13 @@ const styles = StyleSheet.create({
     dropdownList: {
         position: "absolute",
         top: "100%",
-        left: SCREEN_WIDTH * 0.187,
+        left: SCREEN_WIDTH * 0.21,
         right: 0,
         backgroundColor: "white",
         borderWidth: 1,
         borderColor: "#ddd",
         borderRadius: SCREEN_WIDTH * 0.013,
-        zIndex: 1000,
+        zIndex: 1,
         elevation: 5,
     },
     dropdownItem: {
@@ -406,6 +527,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#ddd",
     },
+    //지도
     mapContainer: {
         width: "100%",
         height: SCREEN_HEIGHT * 0.25,
@@ -413,10 +535,13 @@ const styles = StyleSheet.create({
         marginBottom: SCREEN_WIDTH * 0.053,
         borderRadius: SCREEN_WIDTH * 0.013,
     },
+    //설명
     descriptionInput: {
-        height: SCREEN_HEIGHT * 0.15,
+        height: SCREEN_HEIGHT * 0.2,
         textAlignVertical: "top",
     },
+
+    //제출 버튼
     submitButton: {
         backgroundColor: "#f0f0f0",
         padding: SCREEN_WIDTH * 0.04,
@@ -426,6 +551,46 @@ const styles = StyleSheet.create({
         marginBottom: SCREEN_WIDTH * 0.053,
     },
     submitButtonText: {
+        color: "#333",
+        fontSize: SCREEN_WIDTH * 0.043,
+        fontWeight: "bold",
+    },
+    // 이미지 선택 모달 버튼
+    openModalButton: {
+        backgroundColor: "#f0f0f0",
+        padding: SCREEN_WIDTH * 0.04,
+        borderRadius: SCREEN_WIDTH * 0.013,
+        alignItems: "center",
+        marginTop: SCREEN_WIDTH * 0.027,
+        marginBottom: SCREEN_WIDTH * 0.053,
+    },
+    openModalButtonText: {
+        color: "#333",
+        fontSize: SCREEN_WIDTH * 0.043,
+        fontWeight: "bold",
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        padding: SCREEN_WIDTH * 0.053,
+        borderTopLeftRadius: SCREEN_WIDTH * 0.027,
+        borderTopRightRadius: SCREEN_WIDTH * 0.027,
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+    },
+    modalButton: {
+        backgroundColor: "#f0f0f0",
+        padding: SCREEN_WIDTH * 0.04,
+        borderRadius: SCREEN_WIDTH * 0.013,
+        alignItems: "center",
+        marginBottom: SCREEN_WIDTH * 0.027,
+    },
+    modalButtonText: {
         color: "#333",
         fontSize: SCREEN_WIDTH * 0.043,
         fontWeight: "bold",

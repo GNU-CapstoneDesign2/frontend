@@ -1,26 +1,43 @@
-import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Image } from "react-native";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+//
+import { Modal, Portal, Button, PaperProvider } from "react-native-paper";
+
 export default function CommunityPage() {
-    const navigation = useNavigation();
+    const [visible, setVisible] = React.useState(false);
+
+    const showModal = () => setVisible(true);
+    const hideModal = () => setVisible(false);
+    const containerStyle = { backgroundColor: "white", padding: 20 };
 
     return (
-        <View style={{ flex: 1 }}>
-            {/* 커스텀 헤더 */}
-            <View style={styles.header}>
-                <Text style={styles.title}>커뮤니티</Text>
-            </View>
+        <SafeAreaProvider>
+            <PaperProvider>
+                <View style={{ flex: 1 }}>
+                    {/* 커스텀 헤더 */}
+                    <View style={styles.header}>
+                        <Text style={styles.title}>커뮤니티</Text>
+                    </View>
 
-            {/* 페이지 내용 */}
-            <View style={styles.content}>
-                <Text>커뮤니티 컨텐츠</Text>
-            </View>
+                    {/* 페이지 내용 */}
+                    <View style={styles.content}>
+                        <Portal>
+                            <Modal visible={visible} onDismiss={hideModal} contentContainerStyle={containerStyle}>
+                                <Text>Example Modal. Click outside this area to dismiss.</Text>
+                            </Modal>
+                        </Portal>
+                        <Button style={{ marginTop: 30 }} onPress={showModal}>
+                            Show
+                        </Button>
+                    </View>
 
-            <NavigationBar />
-        </View>
+                    <NavigationBar />
+                </View>
+            </PaperProvider>
+        </SafeAreaProvider>
     );
 }
 

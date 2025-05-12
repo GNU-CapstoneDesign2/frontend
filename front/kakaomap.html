@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Kakao Map</title>
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            #map {
+                width: 100vw;
+                height: 100vh;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script
+            type="text/javascript"
+            src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3ac582707ed7360421002e0d1a6fe1cd&libraries=services"
+        ></script>
+        <script>
+            const urlParams = new URLSearchParams(location.search);
+            const mode = urlParams.get("mode");
+
+            window.staticMaplatlng = { lat: 35.15385872250456, lng: 128.10169273462938 };
+
+            if (mode !== "staticMap") {
+                //맵 생성
+                var container = document.getElementById("map");
+                var options = {
+                    center: new kakao.maps.LatLng(35.15385872250456, 128.10169273462938),
+                    level: 4,
+                    maxLevel: 8,
+                    disableDoubleClickZoom: true,
+                };
+                var map = new kakao.maps.Map(container, options);
+            } else {
+                setTimeout(function () {
+                    // staticMap
+                    var container = document.getElementById("map");
+                    var options = {
+                        center: new kakao.maps.LatLng(window.staticMaplatlng.lat, window.staticMaplatlng.lng),
+                        level: 3,
+                        draggable: false,
+                        disableDoubleClickZoom: true,
+                    };
+
+                    var staticMap = new kakao.maps.Map(container, options);
+                }, 100);
+            }
+
+            // 중심이동
+            function setCenter(x, y) {
+                var moveLatLon = new kakao.maps.LatLng(x, y);
+                map.setCenter(moveLatLon);
+            }
+
+            window.document.addEventListener("message", function (event) {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "setCenter") {
+                    const { lat, lng } = data.payload;
+                    setCenter(lat, lng);
+                }
+
+                if (data.type === "getAddress") {
+                    var latlng = map.getCenter();
+                    const message = {
+                        type: "LOCATION",
+                        payload: {
+                            lat: latlng.getLat(),
+                            lng: latlng.getLng(),
+                            address: detailAddr,
+                        },
+                    };
+
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                }
+            });
+
+            if (mode === "writePost") {
+                // 지도 중앙에 마커를 생성합니다
+                var latlng = map.getCenter();
+                var markerPosition = new kakao.maps.LatLng(latlng.getLat(), latlng.getLng());
+                var marker = new kakao.maps.Marker({
+                    position: markerPosition,
+                });
+                marker.setMap(map);
+
+                var detailAddr = "";
+                var infowindow = new kakao.maps.InfoWindow({ zindex: 1 });
+                // 주소-좌표 변환 객체를 생성합니다
+                var geocoder = new kakao.maps.services.Geocoder();
+                searchDetailAddrFromCoords(latlng, function (result, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        detailAddr = result[0].address.address_name;
+
+                        var content = '<div class="customInfoWindow">' + "<div>" + detailAddr + "</div>" + "</div>";
+
+                        marker.setPosition(new kakao.maps.LatLng(latlng.getLat(), latlng.getLng()));
+
+                        // 인포윈도우에 클릭한 위치에 대한 법정동 상세 주소정보를 표시합니다
+                        infowindow.setContent(content);
+                        infowindow.open(map, marker);
+                    }
+                });
+                // 좌표로 행정동 주소 정보를 요청합니다
+                function searchAddrFromCoords(coords, callback) {
+                    geocoder.coord2RegionCode(coords.getLng(), coords.getLat(), callback);
+                }
+
+                // 좌표로 법정동 상세 주소 정보를 요청합니다
+                function searchDetailAddrFromCoords(coords, callback) {
+                    geocoder.coord2Address(coords.getLng(), coords.getLat(), callback);
+                }
+
+                //센터가 이동할때마다 마커의 위치 변경
+                kakao.maps.event.addListener(map, "center_changed", function () {
+                    // 지도의  레벨을 얻어옵니다
+                    var level = map.getLevel();
+
+                    // 지도의 중심좌표를 얻어옵니다
+                    var latlng = map.getCenter();
+
+                    marker.setPosition(new kakao.maps.LatLng(latlng.getLat(), latlng.getLng()));
+                    infowindow.close(map, marker);
+                });
+
+                // 중심 좌표나 확대 수준이 변경됐을 때 지도 중심 좌표에 대한 주소 정보를 표시하도록 이벤트를 등록합니다
+                kakao.maps.event.addListener(map, "idle", function () {
+                    var latlng = map.getCenter();
+                    searchDetailAddrFromCoords(latlng, function (result, status) {
+                        if (status === kakao.maps.services.Status.OK) {
+                            detailAddr = result[0].address.address_name;
+
+                            var content = '<div class="customInfoWindow">' + "<div>" + detailAddr + "</div>" + "</div>";
+
+                            marker.setPosition(new kakao.maps.LatLng(latlng.getLat(), latlng.getLng()));
+
+                            // 인포윈도우에 클릭한 위치에 대한 법정동 상세 주소정보를 표시합니다
+                            infowindow.setContent(content);
+                            infowindow.open(map, marker);
+                        }
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>
+
+<style>
+    .customInfoWindow {
+        width: 200px;
+        max-width: 300px;
+        word-wrap: break-word;
+        font-size: 15px;
+        line-height: 1.5;
+        white-space: normal;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
