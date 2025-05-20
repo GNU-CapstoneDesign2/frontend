@@ -29,7 +29,7 @@
             const urlParams = new URLSearchParams(location.search);
             const mode = urlParams.get("mode");
 
-            window.staticMaplatlng = { lat: 35.15385872250456, lng: 128.10169273462938 };
+            window.staticMaplatlng = { lat: 35.15385872250456, lng: 128.10169273462938 }; //추후 사용자 gps 좌표로 변경
 
             if (mode !== "staticMap") {
                 //맵 생성
@@ -43,7 +43,6 @@
                 var map = new kakao.maps.Map(container, options);
             } else {
                 setTimeout(function () {
-                    // staticMap
                     var container = document.getElementById("map");
                     var options = {
                         center: new kakao.maps.LatLng(window.staticMaplatlng.lat, window.staticMaplatlng.lng),

@@ -1,5 +1,5 @@
 //실종 신고 페이지
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -20,7 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { normalize, SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import { PaperProvider } from "react-native-paper";
 
@@ -58,6 +58,7 @@ export default function MissingReportPage() {
 
     const navigation = useNavigation();
 
+    //권한 요청
     useEffect(() => {
         (async () => {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,6 +68,7 @@ export default function MissingReportPage() {
         })();
     }, []);
 
+    //이미지 선택
     const handleSelectImagePress = async () => {
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
@@ -88,6 +90,7 @@ export default function MissingReportPage() {
         }
     };
 
+    //카메라 촬영
     const handleOpenCamera = async () => {
         try {
             const result = await ImagePicker.launchCameraAsync({
@@ -107,10 +110,13 @@ export default function MissingReportPage() {
         }
     };
 
+    //call API
+    const API = async () => {};
+
     return (
         <SafeAreaProvider>
             <PaperProvider>
-                <View style={styles.container}>
+                <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
                     {/* 커스텀 헤더 */}
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -127,7 +133,6 @@ export default function MissingReportPage() {
                             <View style={styles.imageSection}>
                                 {formData.images ? (
                                     <View style={styles.imagePreviewContainer}>
-                                        {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
                                         <Image source={{ uri: formData.images[0] }} style={styles.imagePreview} />
 
                                         <TouchableOpacity
@@ -295,7 +300,6 @@ export default function MissingReportPage() {
                                 />
                             </View>
 
-                            {/*정적 웹뷰는 나중에 추가할 예정 */}
                             <View style={styles.mapContainer}>
                                 {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
                                     <WebView
@@ -371,7 +375,8 @@ export default function MissingReportPage() {
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </View>
+                </SafeAreaView>
+                {/* <View style={styles.container}></View> */}
             </PaperProvider>
         </SafeAreaProvider>
     );

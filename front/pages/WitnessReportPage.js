@@ -12,6 +12,7 @@ import {
     Modal,
     TouchableWithoutFeedback,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,9 +22,9 @@ import DatePicker from "../components/DatePicker";
 import TimePicker from "../components/TimePicker";
 import AddressPicker from "../components/AddressPicker";
 import { WebView } from "react-native-webview";
-import { TextInput } from "react-native-paper";
+import { TextInput, Provider as PaperProvider } from "react-native-paper";
 
-export default function MissingReportPage() {
+export default function WitnessReportPage() {
     const [imageUri, setImageUri] = useState(null);
     const [formData, setFormData] = useState({
         witnessDate: "", //목격 날짜
@@ -87,135 +88,146 @@ export default function MissingReportPage() {
     };
 
     return (
-        <View style={styles.container}>
-            {/* 커스텀 헤더 */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={normalize(24)} color="black" />
-                </TouchableOpacity>
-                <Text style={styles.title}>목격 제보</Text>
-            </View>
+        <PaperProvider>
+            <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+                <View style={styles.container}>
+                    {/* 커스텀 헤더 */}
+                    <View style={styles.header}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                            <Ionicons name="arrow-back" size={normalize(24)} color="black" />
+                        </TouchableOpacity>
+                        <Text style={styles.title}>목격 제보</Text>
+                    </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* 이미지 선택 컨테이너 */}
-                <View style={styles.imageSection}>
-                    {imageUri ? (
-                        <View style={styles.imagePreviewContainer}>
-                            {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
-                            <Image source={{ uri: imageUri[0] }} style={styles.imagePreview} />
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
+                        {/* 이미지 선택 컨테이너 */}
+                        <View style={styles.imageSection}>
+                            {imageUri ? (
+                                <View style={styles.imagePreviewContainer}>
+                                    {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
+                                    <Image source={{ uri: imageUri[0] }} style={styles.imagePreview} />
 
-                            <TouchableOpacity style={styles.changeImageButton} onPress={() => setIsModalVisible(true)}>
-                                <Text style={styles.changeImageText}>이미지 변경</Text>
-                            </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.changeImageButton}
+                                        onPress={() => setIsModalVisible(true)}
+                                    >
+                                        <Text style={styles.changeImageText}>이미지 변경</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            ) : (
+                                <ImageSelectButton onPress={() => setIsModalVisible(true)} />
+                            )}
                         </View>
-                    ) : (
-                        <ImageSelectButton onPress={() => setIsModalVisible(true)} />
-                    )}
-                </View>
-                {/* 카메라 ,갤러리 선택 모달 */}
-                <Modal
-                    visible={isModalVisible}
-                    transparent={true}
-                    animationType="slide"
-                    onRequestClose={() => setIsModalVisible(false)}
-                >
-                    <TouchableWithoutFeedback onPress={() => setIsModalVisible(false)}>
-                        <View style={styles.modalOverlay} />
-                    </TouchableWithoutFeedback>
-                    <View style={styles.modalContent}>
-                        <TouchableOpacity
-                            style={styles.modalButton}
-                            onPress={() => {
-                                setIsModalVisible(false);
-                                handleOpenCamera();
-                            }}
+                        {/* 카메라 ,갤러리 선택 모달 */}
+                        <Modal
+                            visible={isModalVisible}
+                            transparent={true}
+                            animationType="slide"
+                            onRequestClose={() => setIsModalVisible(false)}
                         >
-                            <Text style={styles.modalButtonText}>카메라로 촬영</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.modalButton}
-                            onPress={() => {
-                                setIsModalVisible(false);
-                                handleSelectImagePress();
-                            }}
-                        >
-                            <Text style={styles.modalButtonText}>갤러리에서 선택</Text>
-                        </TouchableOpacity>
-                    </View>
-                </Modal>
+                            <TouchableWithoutFeedback onPress={() => setIsModalVisible(false)}>
+                                <View style={styles.modalOverlay} />
+                            </TouchableWithoutFeedback>
+                            <View style={styles.modalContent}>
+                                <TouchableOpacity
+                                    style={styles.modalButton}
+                                    onPress={() => {
+                                        setIsModalVisible(false);
+                                        handleOpenCamera();
+                                    }}
+                                >
+                                    <Text style={styles.modalButtonText}>카메라로 촬영</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.modalButton}
+                                    onPress={() => {
+                                        setIsModalVisible(false);
+                                        handleSelectImagePress();
+                                    }}
+                                >
+                                    <Text style={styles.modalButtonText}>갤러리에서 선택</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Modal>
 
-                {/* 입력 폼 */}
-                <View style={styles.formContainer}>
-                    <Text style={styles.label}>목격 날짜/시간</Text>
-                    <View style={styles.inputDateTime}>
-                        <DatePicker
-                            value={formData.witnessDate}
-                            onConfirm={(formattedDate) => setFormData({ ...formData, witnessDate: formattedDate })}
-                        />
-                        <TimePicker
-                            value={formData.witnessTime}
-                            onConfirm={(formattedTime) => setFormData({ ...formData, witnessTime: formattedTime })}
-                        />
-                    </View>
+                        {/* 입력 폼 */}
+                        <View style={styles.formContainer}>
+                            <Text style={styles.label}>목격 날짜/시간</Text>
+                            <View style={styles.inputDateTime}>
+                                <DatePicker
+                                    value={formData.witnessDate}
+                                    onConfirm={(formattedDate) =>
+                                        setFormData({ ...formData, witnessDate: formattedDate })
+                                    }
+                                />
+                                <TimePicker
+                                    value={formData.witnessTime}
+                                    onConfirm={(formattedTime) =>
+                                        setFormData({ ...formData, witnessTime: formattedTime })
+                                    }
+                                />
+                            </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>목격 장소</Text>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>목격 장소</Text>
 
-                        <AddressPicker
-                            onChange={(lat, lng, address) =>
-                                setFormData({
-                                    ...formData,
-                                    address,
-                                    coordinates: { latitude: lat, longitude: lng },
-                                })
-                            }
-                        />
-                    </View>
+                                <AddressPicker
+                                    onChange={(lat, lng, address) =>
+                                        setFormData({
+                                            ...formData,
+                                            address,
+                                            coordinates: { latitude: lat, longitude: lng },
+                                        })
+                                    }
+                                />
+                            </View>
 
-                    {/* 정적 지도 */}
-                    <View style={styles.mapContainer}>
-                        {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
-                            <WebView
-                                key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
-                                source={{
-                                    uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=staticMap",
-                                }}
-                                javaScriptEnabled={true}
-                                originWhitelist={["*"]}
-                                injectedJavaScript={`
+                            {/* 정적 지도 */}
+                            <View style={styles.mapContainer}>
+                                {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
+                                    <WebView
+                                        key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
+                                        source={{
+                                            uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=staticMap",
+                                        }}
+                                        javaScriptEnabled={true}
+                                        originWhitelist={["*"]}
+                                        injectedJavaScript={`
                                             window.staticMaplatlng = {
                                                 lat: ${formData.coordinates.latitude},
                                                 lng: ${formData.coordinates.longitude}
                                             };
                                             true;
                                         `}
-                            ></WebView>
-                        )}
-                    </View>
+                                    ></WebView>
+                                )}
+                            </View>
 
-                    {/* 설명 */}
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>설명</Text>
-                        <TextInput
-                            style={[styles.input, styles.descriptionInput]}
-                            multiline
-                            numberOfLines={4}
-                            placeholder="특징을 적어주세요."
-                            value={formData.description}
-                            mode="outlined"
-                            cursorColor="black"
-                            activeOutlineColor="grey"
-                            onChangeText={(text) => setFormData({ ...formData, description: text })}
-                        />
-                    </View>
+                            {/* 설명 */}
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>설명</Text>
+                                <TextInput
+                                    style={[styles.input, styles.descriptionInput]}
+                                    multiline
+                                    numberOfLines={4}
+                                    placeholder="특징을 적어주세요."
+                                    value={formData.description}
+                                    mode="outlined"
+                                    cursorColor="black"
+                                    activeOutlineColor="grey"
+                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                />
+                            </View>
 
-                    {/* 제출 버튼 */}
-                    <TouchableOpacity style={styles.submitButton}>
-                        <Text style={styles.submitButtonText}>작성완료</Text>
-                    </TouchableOpacity>
+                            {/* 제출 버튼 */}
+                            <TouchableOpacity style={styles.submitButton}>
+                                <Text style={styles.submitButtonText}>작성완료</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
                 </View>
-            </ScrollView>
-        </View>
+            </SafeAreaView>
+        </PaperProvider>
     );
 }
 

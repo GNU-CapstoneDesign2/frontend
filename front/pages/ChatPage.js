@@ -1,26 +1,32 @@
 //챗 페이지
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
-import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
+import { SCREEN_WIDTH } from "../utils/normalize";
+import { PaperProvider } from "react-native-paper";
 export default function ChatPage() {
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
+
     return (
-        <View style={{ flex: 1 }}>
-            {/* 커스텀 헤더 */}
-            <View style={styles.header}>
-                <Text style={styles.title}>챗 목록 페이지</Text>
-            </View>
+        <PaperProvider>
+            <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+                <View style={{ flex: 1 }}>
+                    {/* 커스텀 헤더 */}
+                    <View style={styles.header}>
+                        <Text style={styles.title}>챗 목록 페이지</Text>
+                    </View>
 
-            {/* 페이지 내용 */}
-            <View style={styles.content}>
-                <Text>채팅방 목록</Text>
-            </View>
-
-            <NavigationBar />
-        </View>
+                    {/* 페이지 내용 */}
+                    <View style={styles.content}>
+                        <Text>채팅방 목록</Text>
+                    </View>
+                </View>
+                <NavigationBar />
+            </SafeAreaView>
+        </PaperProvider>
     );
 }
 
@@ -41,6 +47,8 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+        width: "100%",
+        height: "100%",
         justifyContent: "center",
         alignItems: "center",
     },
