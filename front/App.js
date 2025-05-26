@@ -10,8 +10,7 @@ import Home from "./pages/Home";
 //
 import MainPage from "./pages/MainPage";
 import CommunityPage from "./pages/CommunityPage";
-import ChatPage from "./pages/ChatPage";
-import MyPage from "./pages/MyPage";
+
 //게시글 작성/상세
 import MissingDetailPage from "./pages/MissingDetailPage";
 import WitnessDetailPage from "./pages/WitnessDetailPage";
@@ -20,6 +19,14 @@ import WitnessReportPage from "./pages/WitnessReportPage";
 
 import AdoptDetailPage from "./pages/AdoptDetailPage";
 import NoticeDetailPage from "./pages/NoticeDetailPage";
+
+//채팅방
+import ChatPage from "./pages/ChatPage";
+import ChatRoomPage from "./pages/ChatRoomPage";
+
+//마이페이지
+import MyPage from "./pages/MyPage";
+import EditProfilePage from "./pages/EditProfilePage";
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -33,8 +40,6 @@ export default function App() {
 
                 <Stack.Screen name="Main" component={MainPage} />
                 <Stack.Screen name="Community" component={CommunityPage} />
-                <Stack.Screen name="Chat" component={ChatPage} />
-                <Stack.Screen name="MyPage" component={MyPage} />
 
                 <Stack.Screen name="MissingReport" component={MissingReportPage} />
                 <Stack.Screen name="WitnessReport" component={WitnessReportPage} />
@@ -43,6 +48,12 @@ export default function App() {
 
                 <Stack.Screen name="AdoptDetailPage" component={AdoptDetailPage} />
                 <Stack.Screen name="NoticeDetailPage" component={NoticeDetailPage} />
+
+                <Stack.Screen name="ChatPage" component={ChatPage} />
+                <Stack.Screen name="ChatRoomPage" component={ChatRoomPage} />
+
+                <Stack.Screen name="MyPage" component={MyPage} />
+                <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
             </Stack.Navigator>
         </NavigationContainer>
     );

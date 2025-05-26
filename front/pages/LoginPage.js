@@ -24,7 +24,7 @@ export default function LoginScreen() {
     if (response?.type === 'success') {
       const { authentication } = response;
       console.log('Google Access Token:', authentication.accessToken);
-      navigation.replace('Home');
+      navigation.replace('Main');
     }
   }, [response]);
 
@@ -72,7 +72,7 @@ export default function LoginScreen() {
                 ],
               });
               console.log('Apple 로그인 성공:', credential);
-              navigation.replace('Home');
+              navigation.replace('Main');
             } catch (e) {
               if (e.code === 'ERR_CANCELED') {
                 console.log('Apple 로그인 취소됨');
