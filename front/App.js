@@ -1,13 +1,13 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ko, registerTranslation } from "react-native-paper-dates";
+
 //로그인
 import LoginPage from "./pages/LoginPage";
 import KakaoLoginWebView from "./pages/KakaoLoginWebView";
 import NaverLoginWebView from "./pages/NaverLoginWebView";
-import Home from "./pages/Home";
 
-//
 import MainPage from "./pages/MainPage";
 import CommunityPage from "./pages/CommunityPage";
 
@@ -27,6 +27,11 @@ import ChatRoomPage from "./pages/ChatRoomPage";
 //마이페이지
 import MyPage from "./pages/MyPage";
 import EditProfilePage from "./pages/EditProfilePage";
+
+//유사도 조회 페이지
+import SimilarPostsPage from "./pages/SimilarPostsPage";
+
+registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -36,7 +41,6 @@ export default function App() {
                 <Stack.Screen name="LoginPage" component={LoginPage} />
                 <Stack.Screen name="KakaoLoginWebView" component={KakaoLoginWebView} />
                 <Stack.Screen name="NaverLoginWebView" component={NaverLoginWebView} />
-                <Stack.Screen name="Home" component={Home} />
 
                 <Stack.Screen name="Main" component={MainPage} />
                 <Stack.Screen name="Community" component={CommunityPage} />
@@ -54,6 +58,8 @@ export default function App() {
 
                 <Stack.Screen name="MyPage" component={MyPage} />
                 <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
+
+                <Stack.Screen name="SimilarPostsPage" component={SimilarPostsPage} />
             </Stack.Navigator>
         </NavigationContainer>
     );

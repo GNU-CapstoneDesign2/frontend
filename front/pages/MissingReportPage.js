@@ -369,6 +369,23 @@ export default function MissingReportPage() {
                                 onPress={() => {
                                     formData.date = formData.missingDate + " " + formData.missingTime;
                                     console.log(formData);
+
+                                    //게시글을 등록하는 api 호출 후 json 응답의 postId를 이용해 유사 게시글 조회
+                                    // API()
+                                    //     .then((response) => {
+                                    //         if (response.status === 200) {
+                                    //             Alert.alert("성공", "게시글이 등록되었습니다.");
+                                    //             //유사 게시글 조회 페이지로 이동
+                                    //             // navigation.navigate("SimilarPosts");
+                                    //         } else {
+                                    //             Alert.alert("오류", "게시글 등록에 실패했습니다.");
+                                    //         }
+                                    //     })
+                                    //     .catch((error) => {
+                                    //         console.error(error);
+                                    //         Alert.alert("잘못된 요청입니다");
+                                    //     });
+                                    navigation.navigate("SimilarPostsPage");
                                 }}
                             >
                                 <Text style={styles.submitButtonText}>작성완료</Text>
@@ -376,7 +393,6 @@ export default function MissingReportPage() {
                         </View>
                     </ScrollView>
                 </SafeAreaView>
-                {/* <View style={styles.container}></View> */}
             </PaperProvider>
         </SafeAreaProvider>
     );

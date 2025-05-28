@@ -67,44 +67,55 @@ export default function MainPage() {
     const webViewRef = useRef(null);
 
     // 필터 버튼 상태 관리
-    const filterList = ["개", "고양이", "실종", "목격", "공고중", "입양대기"];
-    const [filterStates, setFilterStates] = useState(filterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {}));
+    const speciesFilterList = ["개", "고양이"];
+    const stateFilterList = ["실종", "목격", "공고중", "입양대기"];
+    const [speciesFilter, setSpeciesFilter] = useState(
+        speciesFilterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {})
+    );
+    const [stateFilter, setStateFilter] = useState(
+        stateFilterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {})
+    );
 
     // 필터 버튼 클릭 핸들러
     const handleFilterPress = (item) => {
-        // if (item === "전체") {
-        //     const allActive = Object.values(filterStates).every((v) => v);
-        //     const newState = filterList.reduce((acc, cur) => ({ ...acc, [cur]: !allActive }), {});
-        //     setFilterStates(newState);
-        // } else {
-        setFilterStates((prev) => {
-            const updated = { ...prev, [item]: !prev[item] };
-            return updated;
-        });
-        // }
-
-        //api 호출 경우
-        //필터 상태가 바뀌었을 떄
-        //지도 중심 변경으로 bounds가 webview에 전달되었을 때
-        //과도한 api 호출 방지를 위해 debounce 사용
+        if (speciesFilterList.includes(item)) {
+            setSpeciesFilter((prev) => {
+                const updated = { ...prev, [item]: !prev[item] };
+                return updated;
+            });
+        } else if (stateFilterList.includes(item)) {
+            setStateFilter((prev) => {
+                const updated = { ...prev, [item]: !prev[item] };
+                return updated;
+            });
+        }
     };
 
     // filterStates가 바뀔 때마다 API 호출 실행
     useEffect(() => {
-        //true인 값만 필터링
-        const selected = Object.entries(filterStates)
-            .filter(([key, value]) => key !== "전체" && value)
+        // speciesFilter와 stateFilter를 각각 문자열로 추출
+        const selectedSpecies = Object.entries(speciesFilter)
+            .filter(([key, value]) => value)
             .map(([key]) => key)
             .join(",");
-
-        // 여기서 fetch나 axios 로  API 호출
-        // selected가 공백이면 모든 값을 전송 공백이 아니면 선택된 값만 전송
-        if (selected === "") {
-            console.log("필터상태 api 전달 : 개,고양이,실종,목격,공고중,입양대기");
+        const selectedStates = Object.entries(stateFilter)
+            .filter(([key, value]) => value)
+            .map(([key]) => key)
+            .join(",");
+        // 예시: API 호출 시 species와 state를 각각 전달
+        let filterQuery = "";
+        if (selectedSpecies === "" && selectedStates !== "") {
+            filterQuery = `state=${selectedStates}`;
+        } else if (selectedSpecies !== "" && selectedStates === "") {
+            filterQuery = `species=${selectedSpecies}`;
+        } else if (selectedSpecies !== "" && selectedStates !== "") {
+            filterQuery = `species=${selectedSpecies}&state=${selectedStates}`;
         } else {
-            console.log(`필터상태 api 전달 : ${selected}`);
+            filterQuery = "species=개,고양이&state=실종,목격,공고중,입양대기"; // 기본값
         }
-    }, [filterStates]);
+        console.log(filterQuery);
+        // 필터값이 변경되는것을 useEffect로 감지하여 게시글,마커 찾기 api 호출
+    }, [speciesFilter, stateFilter]);
 
     //임시 게시글 데이터
     const posts = [
@@ -134,38 +145,6 @@ export default function MainPage() {
         },
         {
             postId: 104,
-            state: "입양대기",
-            date: "2025-04-07T12:00:00Z",
-            address: "부산 해운대구",
-            description: "목격 대상에 대한 간략한 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2017/10/04/02/24/puppy-2814858_640.jpg",
-        },
-        {
-            postId: 105,
-            state: "실종",
-            date: "2025-04-08T15:30:00Z",
-            address: "서울 강남구",
-            description: "실종 대상에 대한 상세 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2025/05/12/11/43/golden-retriever-amber-blue-9595177_640.jpg",
-        },
-        {
-            postId: 106,
-            state: "목격",
-            date: "2025-04-07T12:00:00Z",
-            address: "부산 해운대구",
-            description: "목격 대상에 대한 간략한 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2022/10/24/14/21/puppy-7543571_640.jpg",
-        },
-        {
-            postId: 107,
-            state: "공고중",
-            date: "2025-04-08T15:30:00Z",
-            address: "서울 강남구",
-            description: "실종 대상에 대한 상세 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2014/03/05/19/23/dog-280332_640.jpg",
-        },
-        {
-            postId: 108,
             state: "입양대기",
             date: "2025-04-07T12:00:00Z",
             address: "부산 해운대구",
@@ -251,10 +230,13 @@ export default function MainPage() {
                     {/* 필터 버튼*/}
                     <View style={[styles.filterRowContainer, { paddingTop: insets.top }]}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {filterList.map((item) => (
+                            {[...speciesFilterList, ...stateFilterList].map((item) => (
                                 <TouchableOpacity
                                     key={item}
-                                    style={[styles.filterButton, filterStates[item] && { backgroundColor: "#d3d3d3" }]}
+                                    style={[
+                                        styles.filterButton,
+                                        (speciesFilter[item] || stateFilter[item]) && { backgroundColor: "#d3d3d3" },
+                                    ]}
                                     onPress={() => handleFilterPress(item)}
                                 >
                                     <Text style={styles.filterButtonText}>{item}</Text>
@@ -269,7 +251,7 @@ export default function MainPage() {
                             ref={webViewRef}
                             originWhitelist={["*"]}
                             source={{
-                                uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?",
+                                uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=main",
                             }}
                             style={styles.webview}
                             javaScriptEnabled={true}
@@ -305,7 +287,6 @@ export default function MainPage() {
                                             style={styles.postCard}
                                             activeOpacity={0.8}
                                             onPress={() => {
-                                                //상세보기 페이지로 이동 (예: navigation.navigate('DetailPage', { postId: post.postId }))
                                                 console.log(`게시글 ${post.postId}로 이동`);
 
                                                 // 상태별로 이동할 페이지 결정
@@ -327,6 +308,8 @@ export default function MainPage() {
                                                         routeName = "DefaultDetailPage";
                                                 }
                                                 navigation.navigate(routeName, { postId: post.postId });
+
+                                                //페이지로 이동해서 postId와 페이지 상태값을 이용해서 상세보기 api호출
                                             }}
                                         >
                                             <View style={styles.postImageWrapper}>
@@ -504,7 +487,7 @@ const styles = StyleSheet.create({
     },
     stateBadge: {
         minWidth: 0,
-        borderRadius: 8,
+        borderRadius: 12,
         paddingHorizontal: 10,
         paddingVertical: 2,
         marginBottom: 5,

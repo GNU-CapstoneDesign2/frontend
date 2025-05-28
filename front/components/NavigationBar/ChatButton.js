@@ -8,7 +8,7 @@ const ChatButton = () => {
     const buttonSize = windowWidth * 0.12;
 
     return (
-        <TouchableOpacity onPress={() => navigation.navigate("Chat")} style={styles.button}>
+        <TouchableOpacity onPress={() => navigation.navigate("ChatPage")} style={styles.button}>
             <Image
                 source={require("../../assets/chat.png")}
                 style={[styles.image, { width: buttonSize, height: buttonSize }]}

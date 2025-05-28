@@ -37,5 +37,7 @@ yarn-error.*
 
 
 ./android
-./temp.js
-./temp_map.html
+
+kakao_map.html
+test_map.html
+temp.js

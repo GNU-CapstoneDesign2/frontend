@@ -2,6 +2,7 @@
     "expo": {
         "name": "pet-finder",
         "slug": "pet-finder",
+        "scheme": "pet-finder",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/appIcon.png",
