@@ -45,8 +45,8 @@ export default function App() {
                 <Stack.Screen name="Main" component={MainPage} />
                 <Stack.Screen name="Community" component={CommunityPage} />
 
-                <Stack.Screen name="MissingReport" component={MissingReportPage} />
-                <Stack.Screen name="WitnessReport" component={WitnessReportPage} />
+                <Stack.Screen name="MissingReportPage" component={MissingReportPage} />
+                <Stack.Screen name="WitnessReportPage" component={WitnessReportPage} />
                 <Stack.Screen name="MissingDetailPage" component={MissingDetailPage} />
                 <Stack.Screen name="WitnessDetailPage" component={WitnessDetailPage} />
 

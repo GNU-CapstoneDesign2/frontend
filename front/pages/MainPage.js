@@ -16,6 +16,7 @@ import { ScrollView } from "react-native-gesture-handler";
 import AlarmButton from "../components/AlarmButton";
 import AddressSearcher from "../components/AddressSearchModal";
 import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function stateBadgeColor(state) {
     switch (state) {
@@ -153,6 +154,10 @@ export default function MainPage() {
         },
     ];
 
+    // useEffect(async () => {
+    //     const accessToken = await AsyncStorage.getItem("accessToken");
+    //     console.log(accessToken);
+    // }, []);
     return (
         <GestureHandlerRootView>
             <PaperProvider>
