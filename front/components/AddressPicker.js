@@ -40,53 +40,56 @@ const AddressPicker = ({ onChange }) => {
                 />
             </TouchableOpacity>
             <Modal visible={isWebviewModalVisible} onRequestClose={() => setIsWebviewModalVisible(false)}>
-                <Appbar.Header>
-                    <Appbar.BackAction
-                        onPress={() => {
-                            setIsWebviewModalVisible(false);
+                <View style={{ paddingTop: 0, backgroundColor: "#fff", flex: 1 }}>
+                    <View style={{ height: 0, backgroundColor: "#fff" }} />
+                    <Appbar.Header style={{ marginTop: 0, paddingTop: 0 }} statusBarHeight={0}>
+                        <Appbar.BackAction
+                            onPress={() => {
+                                setIsWebviewModalVisible(false);
+                            }}
+                        />
+                        <Appbar.Content title="지도에서 위치 설정" titleStyle={styles.title} />
+                        <Appbar.Action
+                            icon="magnify"
+                            onPress={() => {
+                                setIsAddressSearchModalVisible(true);
+                            }}
+                        />
+                    </Appbar.Header>
+                    <WebView
+                        ref={webViewRef}
+                        source={{
+                            uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=writePost",
                         }}
+                        javaScriptEnabled={true}
+                        originWhitelist={["*"]}
+                        onMessage={handleWebViewMessage}
                     />
-                    <Appbar.Content title="지도에서 위치 설정" titleStyle={styles.title} />
-                    <Appbar.Action
-                        icon="magnify"
-                        onPress={() => {
-                            setIsAddressSearchModalVisible(true);
-                        }}
+                    <View style={styles.selectButtonContainer}>
+                        <Button
+                            style={styles.selectButton}
+                            buttonColor="skyblue"
+                            textColor="black"
+                            mode="contained"
+                            labelStyle={{ fontSize: SCREEN_WIDTH * 0.04 }}
+                            onPress={() => {
+                                webViewRef.current.postMessage(
+                                    JSON.stringify({
+                                        type: "getAddress",
+                                        payload: {},
+                                    })
+                                );
+                            }}
+                        >
+                            이 위치로 설정
+                        </Button>
+                    </View>
+                    <AddressSearchModal
+                        modalVisible={isAddressSearchModalVisible}
+                        setModalVisible={setIsAddressSearchModalVisible}
+                        webViewRef={webViewRef}
                     />
-                </Appbar.Header>
-                <WebView
-                    ref={webViewRef}
-                    source={{
-                        uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=writePost",
-                    }}
-                    javaScriptEnabled={true}
-                    originWhitelist={["*"]}
-                    onMessage={handleWebViewMessage}
-                />
-                <View style={styles.selectButtonContainer}>
-                    <Button
-                        style={styles.selectButton}
-                        buttonColor="skyblue"
-                        textColor="black"
-                        mode="contained"
-                        labelStyle={{ fontSize: SCREEN_WIDTH * 0.04 }}
-                        onPress={() => {
-                            webViewRef.current.postMessage(
-                                JSON.stringify({
-                                    type: "getAddress",
-                                    payload: {},
-                                })
-                            );
-                        }}
-                    >
-                        이 위치로 설정
-                    </Button>
                 </View>
-                <AddressSearchModal
-                    modalVisible={isAddressSearchModalVisible}
-                    setModalVisible={setIsAddressSearchModalVisible}
-                    webViewRef={webViewRef}
-                />
             </Modal>
         </View>
     );

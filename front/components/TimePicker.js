@@ -4,7 +4,7 @@ import { TextInput } from "react-native-paper";
 import { TimePickerModal } from "react-native-paper-dates";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-const TimePicker = ({ value, onConfirm, placeholder = "오전/후 HH시 MM분", style }) => {
+const TimePicker = ({ value, onConfirm, style }) => {
     const [timePickerVisible, setTimePickerVisible] = useState(false);
 
     const onDismiss = useCallback(() => {
@@ -28,7 +28,6 @@ const TimePicker = ({ value, onConfirm, placeholder = "오전/후 HH시 MM분", 
             <TouchableOpacity style={[styles.touchable, style]} onPress={() => setTimePickerVisible(true)}>
                 <TextInput
                     style={styles.input}
-                    placeholder={placeholder}
                     value={value}
                     mode="outlined"
                     activeOutlineColor="grey"

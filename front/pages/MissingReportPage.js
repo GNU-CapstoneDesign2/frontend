@@ -17,7 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
 
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { normalize, SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -31,26 +31,31 @@ import { formatPhoneNumber } from "../utils/formatPhoneNumber";
 import AddressPicker from "../components/AddressPicker";
 import WebView from "react-native-webview";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+
 export default function MissingReportPage() {
+    const route = useRoute();
+    const [missingDate, setMissingDate] = useState("");
+    const [missingTime, setMissingTime] = useState("");
     const [formData, setFormData] = useState({
-        state: "missing", // 글 유형
-        date: "", // 실종 일시 missingDate + missingTime 필수
-        address: "", // 실종 주소 필수
+        //필수
+        date: "", //missingDate + missingTime
+        address: "",
         coordinates: {
-            //필수
             latitude: "", // 위도
             longitude: "", // 경도
         },
-        petType: "", // 동물 종류 (개, 고양이) 필수
-
-        description: "", // 글 설명 ,선택
-        images: null, // 이미지 ,선택
-        name: "", // 동물 이름 ,선택
-        gender: "암", // 성별 ,선택
-        animalNum: "", // 등록번호 ,선택
-        breed: "", // 품종 ,선택
-        phone: "", // 연락처 ,선택
-        reward: "", // 사례금 ,선택
+        // petType: route.params.petType,
+        //선택
+        description: "", // 글 설명
+        images: null, // 이미지
+        name: "", // 동물 이름
+        gender: "암", // 성별
+        animalNum: "", // 등록번호
+        breed: "", // 품종
+        phone: "", // 연락처
+        reward: "", // 사례금
     });
 
     const [isGenderOpen, setIsGenderOpen] = useState(false);
@@ -366,9 +371,53 @@ export default function MissingReportPage() {
 
                             <TouchableOpacity
                                 style={styles.submitButton}
-                                onPress={() => {
-                                    formData.date = formData.missingDate + " " + formData.missingTime;
-                                    console.log(formData);
+                                onPress={async () => {
+                                    // try {
+                                    //     const token = await AsyncStorage.getItem("accessToken");
+                                    //     formData.date = formData.missingDate + " " + formData.missingTime;
+                                    //     const formBody = new FormData();
+                                    //     formBody.append("state", "실종");
+                                    //     formBody.append("date", formData.date);
+                                    //     formBody.append("address", formData.address);
+                                    //     formBody.append("coordinates", JSON.stringify(formData.coordinates));
+                                    //     formBody.append("petType", route.params.petType);
+                                    //     formBody.append("content", formData.description);
+                                    //     formBody.append("name", formData.name);
+                                    //     formBody.append("gender", formData.gender);
+                                    //     formBody.append("animalNum", formData.animalNum);
+                                    //     formBody.append("breed", formData.breed);
+                                    //     formBody.append("phone", formData.phone);
+                                    //     formBody.append("reward", formData.reward);
+                                    //     if (formData.images) {
+                                    //         formData.images.forEach((image, index) => {
+                                    //             formBody.append("images", {
+                                    //                 uri: image,
+                                    //                 type: "image/jpeg",
+                                    //                 name: `${Date.now()}_${index}.jpg`,
+                                    //             });
+                                    //         });
+                                    //     }
+                                    //     console.log(formBody);
+                                    //     //api 호출 코드
+                                    //     const response = await axios.post(
+                                    //         `https://petfinderapp.duckdns.org/posts/lost`,
+                                    //         formBody, //request  body
+                                    //         {
+                                    //             headers: {
+                                    //                 Authorization: `Bearer ${token}`, //Bearer 토큰 인증
+                                    //             },
+                                    //         }
+                                    //     );
+                                    //     if (response.status === 200) {
+                                    //         navigation.navigate("SimilarPostsPage");
+                                    //     } else {
+                                    //         Alert.alert("오류", "게시글 등록에 실패했습니다.");
+                                    //     }
+                                    // } catch (error) {
+                                    //     console.error(error);
+                                    //     Alert.alert("잘못된 요청입니다");
+                                    // }
+                                    navigation.navigate("SimilarPostsPage");
                                 }}
                             >
                                 <Text style={styles.submitButtonText}>작성완료</Text>
@@ -376,7 +425,6 @@ export default function MissingReportPage() {
                         </View>
                     </ScrollView>
                 </SafeAreaView>
-                {/* <View style={styles.container}></View> */}
             </PaperProvider>
         </SafeAreaProvider>
     );
