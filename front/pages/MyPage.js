@@ -43,30 +43,29 @@ export default function MyPage() {
     };
 
     const handleLogout = async () => {
-        // const token = await AsyncStorage.getItem("accessToken");
-        // try {
-        //     const response = await fetch(`https://petfinderapp.duckdns.org/auth/logout`, {
-        //         method: "GET",
-        //         headers: {
-        //             Authorization: `Bearer ${token}`,
-        //         },
-        //     });
-        //     if (response.status === 200) {
-        //         //로그아웃 성공 시 asyncStorage에서 accessToken 삭제하고 로그인 페이지로 이동
-        //         await AsyncStorage.removeItem("accessToken");
-        //         navigation.navigate("Main");
-        //     } else {
-        //         //실패 시 처리 코드
-        //         console.log("로그아웃 실패");
-        //     }
-        // } catch (error) {
-        //     console.log("API 호출 오류:", error);
-        // }
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
 
-        //로그아웃 API 호출 문제 있어서 물어봐야함
-        await AsyncStorage.removeItem("accessToken");
-        navigation.navigate("LoginPage");
+            const response = await axios.post(
+                "https://petfinderapp.duckdns.org/auth/logout",
+                {}, 
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            console.log("로그아웃 응답:", response.data);
+
+            await AsyncStorage.removeItem("accessToken"); // 토큰 제거
+            navigation.replace("LoginPage"); // 로그인 페이지로 이동
+        } catch (error) {
+            console.error("로그아웃 실패:", error.response?.data || error.message);
+        }
     };
+
+
 
     useEffect(() => {
         // 컴포넌트가 마운트될 때 유저 정보 가져오기
@@ -83,9 +82,8 @@ export default function MyPage() {
                 {/* 마이페이지 내용 */}
                 <View style={styles.content}>
                     <Image
-                        source={{
-                            uri: "http://img1.kakaocdn.net/thumb/R640x640.q70/?fname=http://t1.kakaocdn.net/account_images/default_profile.jpeg",
-                        }}
+                        // 유저 정보 기반 프로필 이미지 반영
+                        source={{ uri: userInfo.image }}
                         style={styles.profileImage}
                     />
                     <Text style={styles.userId}>

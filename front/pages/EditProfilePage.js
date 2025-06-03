@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Modal, Pressable } from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Modal, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
 export default function EditProfilePage() {
     const navigation = useNavigation();
@@ -11,10 +13,9 @@ export default function EditProfilePage() {
     const [profileImage, setProfileImage] = useState(null);
     const [showModal, setShowModal] = useState(false);
 
-    // 프로필 사진 선택
+    // 이미지 선택
     const pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
         if (!permissionResult.granted) {
             alert("사진 접근 권한이 필요합니다.");
             return;
@@ -31,23 +32,91 @@ export default function EditProfilePage() {
         }
     };
 
-    const handleSave = () => {
-        console.log("수정 완료:", nickname, profileImage);
+    // Cloudinary 업로드 함수
+    const uploadToCloudinary = async (imageUri) => {
+        const formData = new FormData();
+        formData.append("file", {
+            uri: imageUri,
+            type: "image/jpeg",
+            name: "profile.jpg",
+        });
+        formData.append("upload_preset", "profile_preset");
+
+        const response = await fetch("https://api.cloudinary.com/v1_1/duz332ntn/image/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        const data = await response.json();
+        if (data.secure_url) {
+            return data.secure_url;
+        } else {
+            throw new Error("Cloudinary 업로드 실패");
+        }
+    };
+
+    // 닉네임 및 이미지 저장
+    const handleSave = async () => {
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
+            if (!nickname && !profileImage) {
+                alert("닉네임 또는 프로필 사진을 수정해주세요.");
+                return;
+            }
+
+            let imageUrl = null;
+            if (profileImage) {
+                imageUrl = await uploadToCloudinary(profileImage);
+            }
+
+            const body = {};
+            if (nickname) body.name = nickname;
+            if (imageUrl) body.imageUrl = imageUrl;
+
+            const response = await axios.put("https://petfinderapp.duckdns.org/users/me", body, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.status === 200) {
+                alert("수정이 완료되었습니다.");
+                navigation.replace("MyPage"); 
+            }
+        } catch (error) {
+            if (error.response) {
+                Alert.alert("수정 실패", error.response.data.message || "에러가 발생했습니다.");
+            } else {
+                Alert.alert("오류", "네트워크 오류 또는 알 수 없는 오류가 발생했습니다.");
+            }
+        }
     };
 
     const handleWithdraw = () => {
         setShowModal(true);
     };
 
-    const confirmWithdraw = () => {
+    const confirmWithdraw = async () => {
         setShowModal(false);
-        // 실제 계정 탈퇴 로직 추가
-        console.log("계정 탈퇴 처리");
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
+            const response = await axios.delete("https://petfinderapp.duckdns.org/users/me", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+        await AsyncStorage.clear();  // 기존 토큰 및 정보 전부 제거
+        navigation.replace("LoginPage");
+
+        } catch (error) {
+            Alert.alert("탈퇴 실패", "잠시 후 다시 시도해주세요.");
+        }
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* 헤더 */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Ionicons name="chevron-back" size={24} />
@@ -56,7 +125,6 @@ export default function EditProfilePage() {
                 <View style={{ width: 24 }} />
             </View>
 
-            {/* 프로필 섹션 */}
             <View style={styles.profileSection}>
                 <TouchableOpacity style={styles.profileImageButton} onPress={pickImage}>
                     {profileImage ? (
@@ -80,7 +148,6 @@ export default function EditProfilePage() {
                 </TouchableOpacity>
             </View>
 
-            {/* 계정탈퇴 모달 */}
             <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalBox}>
