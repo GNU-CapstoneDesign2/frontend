@@ -13,10 +13,9 @@ const TimePicker = ({ value, onConfirm, style }) => {
 
     const handleConfirm = useCallback(
         ({ hours, minutes }) => {
-            const period = hours >= 12 ? "오후" : "오전";
-            const formattedHours = String(hours % 12 || 12).padStart(2, "0");
+            const formattedHours = String(hours).padStart(2, "0");
             const formattedMinutes = String(minutes).padStart(2, "0");
-            const formattedTime = `${period} ${formattedHours}시 ${formattedMinutes}분`;
+            const formattedTime = `${formattedHours}:${formattedMinutes}:00`; // ISO 8601 포맷, timePicker에서 초는 지원x 형식만 갖춤
             onConfirm(formattedTime);
             setTimePickerVisible(false);
         },

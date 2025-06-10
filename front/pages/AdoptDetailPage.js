@@ -4,7 +4,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Swiper from "react-native-swiper";
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 export default function AdoptDetailPage() {
+    // useTokenExpirationCheck();
     const navigation = useNavigation();
 
     const handleCall = () => {

@@ -50,6 +50,7 @@ export default function SimilarPostsPage() {
                 // const res = await fetch('API_URL');
                 // const response = await res.json();
                 if (response.status === 200) {
+                    //응답 콘텐츠가 있으면
                     setPosts(response.data.content);
                 } else {
                     setPosts([]);
@@ -58,7 +59,11 @@ export default function SimilarPostsPage() {
                 setError("오류가 발생했습니다.");
                 setPosts([]);
             } finally {
-                // setLoading(false);
+                //유사도 결과 목록 조회 api가 호출 완료되면 로딩 화면 상태를 false로 변경
+                //임시로 10초 후 종료 설정
+                setTimeout(() => {
+                    setLoading(false);
+                }, 10000);
             }
         };
         fetchData();
@@ -92,6 +97,7 @@ export default function SimilarPostsPage() {
                     </View>
                     {/* 컨텐츠 화면 */}
                     <View style={styles.content}>
+                        {/* gif 애니메이션 로딩 화면 */}
                         {loading ? (
                             <View style={{ alignItems: "center", marginTop: 30 }}>
                                 <LottieView

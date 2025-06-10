@@ -1,9 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, Text, StyleSheet, Image, Button } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
-//
 import { PaperProvider } from "react-native-paper";
 
 export default function CommunityPage() {
@@ -49,4 +48,5 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
+    //
 });

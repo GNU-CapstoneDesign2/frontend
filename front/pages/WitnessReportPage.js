@@ -16,27 +16,33 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { normalize, SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import DatePicker from "../components/DatePicker";
 import TimePicker from "../components/TimePicker";
 import AddressPicker from "../components/AddressPicker";
 import { WebView } from "react-native-webview";
 import { TextInput, Provider as PaperProvider } from "react-native-paper";
+import * as FileSystem from "expo-file-system";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 export default function WitnessReportPage() {
+    // useTokenExpirationCheck();
+    const route = useRoute();
+    const navigation = useNavigation();
+
     const [imageUri, setImageUri] = useState(null);
     const [formData, setFormData] = useState({
         witnessDate: "", //목격 날짜
         witnessTime: "", //목격 시간
-        location: "", //목격 장소
+        address: "", //목격 장소
         coordinates: {
-            latitude: "", // 위도
-            longitude: "", // 경도
+            latitude: null, // 위도
+            longitude: null, // 경도
         },
         description: "", //설명
     });
-    const navigation = useNavigation();
 
     //권한 요청
     useEffect(() => {
@@ -62,8 +68,10 @@ export default function WitnessReportPage() {
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const selectedImages = result.assets.map((asset) => asset.uri);
-                setImageUri(selectedImages);
-                console.log(selectedImages);
+                setFormData({
+                    ...formData,
+                    images: selectedImages,
+                });
             }
         } catch (error) {
             Alert.alert("오류", "사진을 불러오는 중 문제가 발생했습니다.");
@@ -87,6 +95,79 @@ export default function WitnessReportPage() {
         }
     };
 
+    const handleSubmit = async () => {
+        formData.date = formData.witnessDate + "T" + formData.witnessTime; //DB에서 받는 데이터 형식을 string이 아닌 dateTime ISO 8601 형식으로 설정해놓아서 KST이지만 형식만 UTC로 맞춰서 보냄
+        const jsonData = {
+            state: "SIGHT",
+            date: formData.date,
+            address: formData.address,
+            petType: route.params.petType,
+            content: formData.description,
+            coordinates: {
+                latitude: parseFloat(formData.coordinates.latitude),
+                longitude: parseFloat(formData.coordinates.longitude),
+            },
+            images: null,
+        };
+        // 서버에서 @RequestPart("json")으로 JSON을 받고 있을 때 Expo에서는 JSON을 파일처럼 보내는 위장 방식 필요
+        // 1. JSON을 파일로 저장
+        const jsonString = JSON.stringify(jsonData);
+        const fileUri = FileSystem.documentDirectory + "data.json";
+        await FileSystem.writeAsStringAsync(fileUri, jsonString, {
+            encoding: FileSystem.EncodingType.UTF8,
+        });
+
+        // 2. FormData 구성
+        const formBody = new FormData();
+        formBody.append("json", {
+            uri: fileUri,
+            name: "data.json",
+            type: "application/json",
+        });
+        // 3. 이미지가 있다면 FormData에 추가
+        // 이미지가 있을 때 이미지 추가 코드 작성
+        formData.images &&
+            formData.images.forEach((imageUri, index) => {
+                const fileName = imageUri.split("/").pop(); //파일 이름
+                const ext = fileName.split(".").pop().toLowerCase(); //확장자
+                // 확장자에 따라 타입 설정
+                let type = "image/jpeg";
+                if (ext === "png") type = "image/png";
+                else if (ext === "webp") type = "image/webp";
+
+                formBody.append("image", {
+                    uri: imageUri,
+                    name: fileName,
+                    type,
+                });
+            });
+
+        console.log("formBody:", formBody); //전송 데이터 확인용
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
+            const response = await fetch("https://petfinderapp.duckdns.org/posts/found", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formBody,
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("게시글 등록 성공, postId : ", result);
+                navigation.navigate("SimilarPostsPage");
+            } else {
+                const errorData = await response.text();
+                console.log("서버 응답 에러:", errorData);
+                Alert.alert("오류", "게시글 등록에 실패했습니다.");
+            }
+        } catch (error) {
+            console.log("게시글 등록 에러:", error);
+            Alert.alert("오류", "게시글 등록 중 문제가 발생했습니다.");
+        }
+    };
+
     return (
         <PaperProvider>
             <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
@@ -102,10 +183,9 @@ export default function WitnessReportPage() {
                     <ScrollView contentContainerStyle={styles.scrollContent}>
                         {/* 이미지 선택 컨테이너 */}
                         <View style={styles.imageSection}>
-                            {imageUri ? (
+                            {formData.images ? (
                                 <View style={styles.imagePreviewContainer}>
-                                    {/* 첫번째로 선택된 이미지가 대표 이미지로 보이게함 imageUri 는 배열 */}
-                                    <Image source={{ uri: imageUri[0] }} style={styles.imagePreview} />
+                                    <Image source={{ uri: formData.images[0] }} style={styles.imagePreview} />
 
                                     <TouchableOpacity
                                         style={styles.changeImageButton}
@@ -184,7 +264,7 @@ export default function WitnessReportPage() {
 
                             {/* 정적 지도 */}
                             <View style={styles.mapContainer}>
-                                {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
+                                {formData.coordinates.latitude !== null && formData.coordinates.longitude !== null && (
                                     <WebView
                                         key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
                                         source={{
@@ -196,13 +276,12 @@ export default function WitnessReportPage() {
                                             window.staticMaplatlng = {
                                                 lat: ${formData.coordinates.latitude},
                                                 lng: ${formData.coordinates.longitude}
-                                            };
-                                            true;
-                                        `}
+                                                };
+                                                true;
+                                            `}
                                     ></WebView>
                                 )}
                             </View>
-
                             {/* 설명 */}
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>설명</Text>
@@ -220,7 +299,7 @@ export default function WitnessReportPage() {
                             </View>
 
                             {/* 제출 버튼 */}
-                            <TouchableOpacity style={styles.submitButton}>
+                            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                                 <Text style={styles.submitButtonText}>작성완료</Text>
                             </TouchableOpacity>
                         </View>
