@@ -5,32 +5,34 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { PaperProvider } from "react-native-paper";
 import { LocationContext } from "../contexts/LocationContext";
 import { Image } from "expo-image";
+import { useNavigation } from "@react-navigation/native";
+import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import debounce from "lodash.debounce";
 // 네비게이션바
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 
-import { useNavigation } from "@react-navigation/native";
 // 바텀시트
 import BottomSheet, { BottomSheetView, WINDOW_HEIGHT } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ScrollView } from "react-native-gesture-handler";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
 
-// 컴포넌트
+// component
 import AlarmButton from "../components/AlarmButton";
 import AddressSearcher from "../components/AddressSearchModal";
 import GpsButton from "../components/GpsButton";
-
-import { WebView } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import debounce from "lodash.debounce";
-import axios from "axios";
+//utils
 import { formatTime, formatDate } from "../utils/formatters";
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+//api
+import fetchPosts from "../api/fetchPosts";
+import fetchMarkers from "../api/fetchMarkers";
 
 export default function MainPage() {
-    // useTokenExpirationCheck();
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
+
+    const [posts, setPosts] = useState([]);
 
     //웹뷰 통신
     const webViewRef = useRef(null);
@@ -144,90 +146,40 @@ export default function MainPage() {
         }
     }, [petTypeFilter, stateFilter]);
 
-    //필터쿼리 변경 시 api 호출
-    useEffect(() => {
-        // console.log(filterQuery);
-        if (bounds.minLat === null || bounds.maxLat === null || bounds.minLng === null || bounds.maxLng === null)
-            return;
-        fetchPosts();
-        fetchMarkers();
-    }, [filterQuery]);
-
     const [bounds, setBounds] = useState({
         minLat: null,
         maxLat: null,
         minLng: null,
         maxLng: null,
     });
-
-    const [posts, setPosts] = useState([]);
-
     // 지도의 중심 위치 변경
     const changed_center = debounce(async (minLat, maxLat, minLng, maxLng) => {
         setBounds({ minLat, maxLat, minLng, maxLng });
     }, 500);
 
-    //지도의 중심 위치가 변하면 게시글 조회
+    //지도 중심좌표 변경 또는 필터쿼리 변경 시 게시글,마커 조회 API 호출
     useEffect(() => {
         if (bounds.minLat === null || bounds.maxLat === null || bounds.minLng === null || bounds.maxLng === null)
             return;
-        fetchPosts();
-        fetchMarkers();
-    }, [bounds]);
+        const loadPosts = async () => {
+            const postsData = await fetchPosts({ bounds, filterQuery });
+            setPosts(postsData);
+        };
+        loadPosts();
+        const loadMarkers = async () => {
+            const markersData = await fetchMarkers({ bounds, filterQuery });
+            webViewRef.current?.postMessage(
+                JSON.stringify({
+                    type: "markerData",
+                    payload: {
+                        markers: markersData || [],
+                    },
+                })
+            );
+        };
+        loadMarkers();
+    }, [bounds, filterQuery]);
 
-    // 지도 게시글 조회 api 호출
-    const fetchPosts = async () => {
-        try {
-            const response = await axios.get(
-                `https://petfinderapp.duckdns.org/map/posts?minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLng=${bounds.minLng}&maxLng=${bounds.maxLng}&${filterQuery}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${await AsyncStorage.getItem("accessToken")}`,
-                    },
-                }
-            );
-            if (response.status === 200) {
-                setPosts(response.data.data.content);
-            } else {
-                console.error("게시글 조회 실패:", response.statusText);
-            }
-        } catch (error) {
-            console.error("게시글 조회 실패:", error);
-        } finally {
-            // console.log(posts);
-        }
-    };
-    // 마커 호출
-    const fetchMarkers = async () => {
-        try {
-            const response = await axios.get(
-                `https://petfinderapp.duckdns.org/map/markers?minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLng=${bounds.minLng}&maxLng=${bounds.maxLng}&${filterQuery}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${await AsyncStorage.getItem("accessToken")}`,
-                    },
-                }
-            );
-            if (response.status === 200) {
-                //웹뷰로 마커 데이터 전송
-                webViewRef.current?.postMessage(
-                    JSON.stringify({
-                        type: "markerData",
-                        payload: {
-                            markers: response.data.data.markers,
-                        },
-                    })
-                );
-            } else {
-                console.error("게시글 조회 실패:", response.statusText);
-            }
-        } catch (error) {
-            console.error("게시글 조회 실패:", error);
-        } finally {
-            // console.log(posts);
-        }
-    };
-    //
     //accessToken 확인용 코드
     useEffect(() => {
         const fetchToken = async () => {
@@ -236,8 +188,7 @@ export default function MainPage() {
         };
         fetchToken();
     }, []);
-    //
-    //
+
     function stateBadgeColor(state) {
         switch (state) {
             case "LOST":
@@ -415,20 +366,25 @@ export default function MainPage() {
                                                                 routeName = "WitnessDetailPage";
                                                                 break;
                                                             case "NOTICE":
-                                                                routeName = "NoticeDetailPage";
+                                                                routeName = "AdoptNoticeDetailPage";
                                                                 break;
                                                             case "ADOPT":
-                                                                routeName = "AdoptDetailPage";
+                                                                routeName = "AdoptNoticeDetailPage";
                                                                 break;
                                                             default:
                                                                 routeName = "DefaultDetailPage";
                                                         }
                                                         navigation.navigate(routeName, { postId: post.postId });
+                                                        console.log("게시글 ID :", post.postId);
                                                     }}
                                                 >
                                                     <View style={styles.postImageWrapper}>
                                                         <Image
-                                                            source={{ uri: post.imageUrl }}
+                                                            source={
+                                                                post.imageUrl
+                                                                    ? { uri: post.imageUrl }
+                                                                    : require("../assets/image_not_found.jpg")
+                                                            }
                                                             style={styles.postImage}
                                                         />
                                                     </View>

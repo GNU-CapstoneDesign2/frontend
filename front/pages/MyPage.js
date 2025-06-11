@@ -4,72 +4,36 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
-
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+//api
+import fetchMyInfo from "../api/fetchMyinfo";
+import logout from "../api/logout";
 
 export default function MyPage() {
-    // useTokenExpirationCheck();
     const navigation = useNavigation();
-    const [userInfo, setUserInfo] = useState({
+    const [myInfo, setMyInfo] = useState({
         name: "",
         image: null,
     });
 
-    //내 정보 조회 API 호출
-    const fetchUserInfo = async () => {
-        const token = await AsyncStorage.getItem("accessToken");
-        try {
-            const response = await axios.get("https://petfinderapp.duckdns.org/users/me", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            if (response.status === 200) {
-                const result = response.data;
-                //유저 정보 처리
-                setUserInfo({
-                    name: result.data?.name || "",
-                    image:
-                        result.data?.image ||
-                        "http://img1.kakaocdn.net/thumb/R640x640.q70/?fname=http://t1.kakaocdn.net/account_images/default_profile.jpeg",
-                });
-            } else {
-                //실패 시 처리 코드
-                console.log("유저 정보 가져오기 실패");
-            }
-        } catch (error) {
-            console.log("API 호출 오류:", error);
-        }
-    };
-
     const handleLogout = async () => {
-        try {
-            const token = await AsyncStorage.getItem("accessToken");
-
-            const response = await axios.post("https://petfinderapp.duckdns.org/auth/logout", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            console.log("로그아웃 응답:", response.data);
-
-            await AsyncStorage.removeItem("accessToken"); // 토큰 제거
-            navigation.replace("LoginPage"); // 로그인 페이지로 이동
-        } catch (error) {
-            console.error("로그아웃 실패:", error.response?.data || error.message);
-        }
+        logout(navigation);
     };
-
-
 
     useEffect(() => {
-        // 컴포넌트가 마운트될 때 유저 정보 가져오기
-        fetchUserInfo();
+        const loadMyInfo = async () => {
+            const myInfoData = await fetchMyInfo();
+            setMyInfo({
+                name: myInfoData.name || "",
+                image:
+                    myInfoData.image ||
+                    "http://img1.kakaocdn.net/thumb/R640x640.q70/?fname=http://t1.kakaocdn.net/account_images/default_profile.jpeg",
+            });
+        };
+        loadMyInfo();
     }, []);
+
     return (
         <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
             <View style={{ flex: 1 }}>
@@ -82,11 +46,11 @@ export default function MyPage() {
                 <View style={styles.content}>
                     <Image
                         // 유저 정보 기반 프로필 이미지 반영
-                        source={{ uri: userInfo.image }}
+                        source={{ uri: myInfo.image }}
                         style={styles.profileImage}
                     />
                     <Text style={styles.userId}>
-                        <Text style={{ fontWeight: "bold" }}>{userInfo.name}</Text>
+                        <Text style={{ fontWeight: "bold" }}>{myInfo.name}</Text>
                     </Text>
 
                     <TouchableOpacity style={styles.editButton} onPress={() => navigation.navigate("EditProfilePage")}>

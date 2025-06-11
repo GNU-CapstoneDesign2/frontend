@@ -38,7 +38,9 @@
     "react-native-swiper": "^1.6.0",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
-    "sockjs-client": "^1.6.1"
+    "expo-image": "~2.2.1",
+    "sockjs-client": "^1.6.1",
+    "@lottiefiles/dotlottie-react": "0.6.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

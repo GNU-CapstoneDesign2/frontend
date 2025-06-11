@@ -11,14 +11,14 @@ import NaverLoginWebView from "./pages/NaverLoginWebView";
 import MainPage from "./pages/MainPage";
 import CommunityPage from "./pages/CommunityPage";
 
-//게시글 작성/상세
+//게시글 작성/상세보기
 import MissingDetailPage from "./pages/MissingDetailPage";
 import WitnessDetailPage from "./pages/WitnessDetailPage";
 import MissingReportPage from "./pages/MissingReportPage";
 import WitnessReportPage from "./pages/WitnessReportPage";
 
-import AdoptDetailPage from "./pages/AdoptDetailPage";
-import NoticeDetailPage from "./pages/NoticeDetailPage";
+//공공 데이터 상세보기
+import AdoptNoticeDetailPage from "./pages/AdoptNoticeDetailPage";
 
 //채팅방
 import ChatPage from "./pages/ChatPage";
@@ -33,6 +33,7 @@ import MyPostListPage from "./pages/MyPostListPage";
 import SimilarPostsPage from "./pages/SimilarPostsPage";
 
 import { LocationProvider } from "./contexts/LocationContext";
+
 registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
 
@@ -53,8 +54,7 @@ export default function App() {
                     <Stack.Screen name="MissingDetailPage" component={MissingDetailPage} />
                     <Stack.Screen name="WitnessDetailPage" component={WitnessDetailPage} />
 
-                    <Stack.Screen name="AdoptDetailPage" component={AdoptDetailPage} />
-                    <Stack.Screen name="NoticeDetailPage" component={NoticeDetailPage} />
+                    <Stack.Screen name="AdoptNoticeDetailPage" component={AdoptNoticeDetailPage} />
 
                     <Stack.Screen name="ChatPage" component={ChatPage} />
                     <Stack.Screen name="ChatRoomPage" component={ChatRoomPage} />

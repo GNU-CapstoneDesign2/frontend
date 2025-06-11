@@ -4,10 +4,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Swiper from "react-native-swiper";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { formatTime, formatDate } from "../utils/formatters"; // 날짜 포맷팅 유틸리티 함수
 import WebView from "react-native-webview";
+//api
+import deletePost from "../api/deletePost";
+import fetchLostDetail from "../api/fetchLostDetail";
 // import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 
 export default function MissingDetailPage() {
@@ -44,57 +45,34 @@ export default function MissingDetailPage() {
         return kstDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     };
 
-    const getPostDetail = async () => {
-        //${postId}를 사용하여 동적으로 postId를 가져와야함
-
-        const token = await AsyncStorage.getItem("accessToken");
-        try {
-            const response = await axios.get(`https://petfinderapp.duckdns.org/posts/lost/${postData.postId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            if (response.status === 200) {
-                const result = response.data;
-
-                //petType, state 는 사용하지 않고 지도에서 게시글 검색 시 사용하는 정보임
-                setPostData((prev) => ({
-                    ...prev,
-                    name: result["lost"].name,
-                    gender: result["lost"].gender,
-                    breed: result["lost"].breed,
-                    petNum: result["lost"].petNum,
-                    phone: result["lost"].phone,
-                    reward: result["lost"].reward,
-                    petType: result["lost"].petType,
-                    createdAt: utcConvertToKST(result["common"].createdAt),
-                    date:
-                        formatDate(result["common"].date.split("T")[0]) +
-                        " " +
-                        formatTime(result["common"].date.split("T")[1]),
-                    address: result["common"].address,
-                    content: result["common"].content,
-                    images: result["common"].images,
-                    userId: result["common"].userId,
-                    coordinates: result["common"].coordinates,
-                }));
-                console.log("게시글 ID : ", postData.postId);
-            } else {
-                console.error("게시글을 불러오는 데 실패했습니다 :", response.status);
-                Alert.Alert("오류", "게시글을 불러오는 데 실패했습니다.");
-                navigation.goBack();
-            }
-        } catch (error) {
-            console.error("게시글을 불러오는 중 에러가 발생했습니다 :", error);
-        }
-    };
-
     useEffect(() => {
-        getPostDetail();
+        const fetchPostDetail = async () => {
+            const result = await fetchLostDetail(postData.postId);
+            setPostData((prev) => ({
+                ...prev,
+                name: result["lost"].name,
+                gender: result["lost"].gender,
+                breed: result["lost"].breed,
+                petNum: result["lost"].petNum,
+                phone: result["lost"].phone,
+                reward: result["lost"].reward,
+                petType: result["lost"].petType,
+                createdAt: utcConvertToKST(result["common"].createdAt),
+                date:
+                    formatDate(result["common"].date.split("T")[0]) +
+                    " " +
+                    formatTime(result["common"].date.split("T")[1]),
+                address: result["common"].address,
+                content: result["common"].content,
+                images: result["common"].images,
+                userId: result["common"].userId,
+                coordinates: result["common"].coordinates,
+            }));
+        };
+        fetchPostDetail();
     }, []);
 
     const handleEdit = () => console.log("수정 클릭");
-    const handleDelete = () => console.log("삭제 클릭");
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top", "bottom"]}>
@@ -121,7 +99,16 @@ export default function MissingDetailPage() {
                                 <Text style={styles.editBtnText}>수정</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                onPress={handleDelete}
+                                onPress={async () => {
+                                    const success = await deletePost(postData.postId);
+                                    if (success) {
+                                        Alert.alert("삭제 완료", "게시글이 삭제되었습니다.", [
+                                            { text: "확인", onPress: () => navigation.navigate("Main") },
+                                        ]);
+                                    } else {
+                                        Alert.alert("삭제 실패", "권한이 없습니다.");
+                                    }
+                                }}
                                 style={[styles.editBtn, { backgroundColor: "#ddd" }]}
                             >
                                 <Text style={[styles.editBtnText, { color: "#000" }]}>삭제</Text>

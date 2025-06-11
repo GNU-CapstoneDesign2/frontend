@@ -6,12 +6,11 @@ import Swiper from "react-native-swiper";
 import { Ionicons } from "@expo/vector-icons";
 import { formatTime, formatDate } from "../utils/formatters";
 import WebView from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+//api
+import deletePost from "../api/deletePost";
+import fetchSightDetail from "../api/fetchSightDetail";
 
 export default function WitnessDetailPage() {
-    // useTokenExpirationCheck();
     const route = useRoute();
     const navigation = useNavigation();
 
@@ -38,46 +37,26 @@ export default function WitnessDetailPage() {
         return kstDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     };
 
-    const getPostDetail = async () => {
-        const token = await AsyncStorage.getItem("accessToken");
-        try {
-            const response = await axios.get(`https://petfinderapp.duckdns.org/posts/found/${postData.postId}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-            if (response.status === 200) {
-                const result = response.data;
-                //petType, state 는 사용하지 않고 지도에서 게시글 검색 시 사용하는 정보임
-                setPostData((prev) => ({
-                    ...prev,
-                    userId: result.userId,
-                    createdAt: utcConvertToKST(result.createdAt),
-                    date: formatDate(result.date.split("T")[0]) + " " + formatTime(result.date.split("T")[1]),
-                    address: result.address,
-                    petType: result.petType,
-                    content: result.content,
-                    images: result.images,
-                    coordinates: result.coordinates,
-                }));
-                console.log("게시글 ID :", postData.postId);
-            } else {
-                console.error("게시글을 불러오는 데 실패했습니다 :", response.status);
-                Alert.Alert("오류", "게시글을 불러오는 데 실패했습니다.");
-                navigation.goBack();
-            }
-        } catch (error) {
-            Alert.alert("에러", "게시글을 불러오는 중 에러가 발생했습니다.");
-            // navigation.goBack();
-        }
-    };
-
     useEffect(() => {
-        getPostDetail();
+        // getPostDetail();
+        const fetchPostDetail = async () => {
+            const result = await fetchSightDetail(postData.postId);
+            setPostData((prev) => ({
+                ...prev,
+                userId: result.userId,
+                createdAt: utcConvertToKST(result.createdAt),
+                date: formatDate(result.date.split("T")[0]) + " " + formatTime(result.date.split("T")[1]),
+                address: result.address,
+                petType: result.petType,
+                content: result.content,
+                images: result.images,
+                coordinates: result.coordinates,
+            }));
+        };
+        fetchPostDetail();
     }, []);
 
     const handleEdit = () => console.log("수정 클릭");
-    const handleDelete = () => console.log("삭제 클릭");
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -103,7 +82,16 @@ export default function WitnessDetailPage() {
                                 <Text style={styles.editBtnText}>수정</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                onPress={handleDelete}
+                                onPress={async () => {
+                                    const success = await deletePost(postData.postId);
+                                    if (success) {
+                                        Alert.alert("삭제 완료", "게시글이 삭제되었습니다.", [
+                                            { text: "확인", onPress: () => navigation.navigate("Main") },
+                                        ]);
+                                    } else {
+                                        Alert.alert("삭제 실패", "권한이 없습니다.");
+                                    }
+                                }}
                                 style={[styles.editBtn, { backgroundColor: "#ddd" }]}
                             >
                                 <Text style={[styles.editBtnText, { color: "#000" }]}>삭제</Text>
@@ -243,7 +231,6 @@ const styles = StyleSheet.create({
     image: {
         width: Dimensions.get("window").width - 32,
         height: 250,
-        borderRadius: 8,
         alignSelf: "center",
     },
     detailInfo: {
