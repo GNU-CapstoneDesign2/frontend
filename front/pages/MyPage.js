@@ -49,23 +49,11 @@ export default function MyPage() {
         try {
             const token = await AsyncStorage.getItem("accessToken");
 
-<<<<<<< HEAD
-            const response = await axios.post(
-                "https://petfinderapp.duckdns.org/auth/logout",
-                {}, 
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-=======
             const response = await axios.post("https://petfinderapp.duckdns.org/auth/logout", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
->>>>>>> 83741a6b1bdcdf505e5a6e7850e240bc5363000d
 
             console.log("로그아웃 응답:", response.data);
 
@@ -105,7 +93,7 @@ export default function MyPage() {
                         <Text style={styles.editButtonText}>정보수정</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuButton}>
+                    <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate("MyPostListPage")}>
                         <Text style={styles.menuButtonText}>내 게시물 보기</Text>
                     </TouchableOpacity>
 

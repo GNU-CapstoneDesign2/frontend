@@ -27,6 +27,7 @@ import ChatRoomPage from "./pages/ChatRoomPage";
 //마이페이지
 import MyPage from "./pages/MyPage";
 import EditProfilePage from "./pages/EditProfilePage";
+import MyPostListPage from "./pages/MyPostListPage";
 
 //유사도 조회 페이지
 import SimilarPostsPage from "./pages/SimilarPostsPage";
@@ -60,6 +61,7 @@ export default function App() {
 
                     <Stack.Screen name="MyPage" component={MyPage} />
                     <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
+                    <Stack.Screen name="MyPostListPage" component={MyPostListPage} />
 
                     <Stack.Screen name="SimilarPostsPage" component={SimilarPostsPage} />
                 </Stack.Navigator>

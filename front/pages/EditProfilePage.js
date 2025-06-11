@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  Modal,
-  Pressable,
-  Alert,
-} from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Modal, Pressable, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import axios from "axios";
 
 export default function EditProfilePage() {
@@ -294,7 +285,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ccc",
     justifyContent: "space-between",
   },
-  headerTitle: { fontSize: 16, fontWeight: "bold" },
+  headerTitle: { fontSize: SCREEN_WIDTH * 0.038, fontWeight: "bold" },
 
   profileSection: {
     alignItems: "center",
