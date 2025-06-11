@@ -1,9 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useContext } from "react";
 import { StyleSheet, View, TouchableOpacity, Modal } from "react-native";
 import { TextInput, Appbar, Button } from "react-native-paper";
 import { WebView } from "react-native-webview";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import AddressSearchModal from "./AddressSearchModal";
+import { LocationContext } from "../contexts/LocationContext";
+import GpsButton from "./GpsButton";
 
 const AddressPicker = ({ onChange }) => {
     const [isWebviewModalVisible, setIsWebviewModalVisible] = React.useState(false);
@@ -27,6 +29,21 @@ const AddressPicker = ({ onChange }) => {
         }
     };
 
+    const { lastPosition } = useContext(LocationContext);
+    const moveToGpsLocation = () => {
+        if (!lastPosition) {
+            return;
+        }
+        webViewRef.current?.postMessage(
+            JSON.stringify({
+                type: "setCenter",
+                payload: {
+                    lat: lastPosition.latitude,
+                    lng: lastPosition.longitude,
+                },
+            })
+        );
+    };
     return (
         <View>
             <TouchableOpacity onPress={() => setIsWebviewModalVisible(true)}>
@@ -41,7 +58,6 @@ const AddressPicker = ({ onChange }) => {
             </TouchableOpacity>
             <Modal visible={isWebviewModalVisible} onRequestClose={() => setIsWebviewModalVisible(false)}>
                 <View style={{ paddingTop: 0, backgroundColor: "#fff", flex: 1 }}>
-                    <View style={{ height: 0, backgroundColor: "#fff" }} />
                     <Appbar.Header style={{ marginTop: 0, paddingTop: 0 }} statusBarHeight={0}>
                         <Appbar.BackAction
                             onPress={() => {
@@ -56,6 +72,9 @@ const AddressPicker = ({ onChange }) => {
                             }}
                         />
                     </Appbar.Header>
+                    <View style={styles.gpsButton}>
+                        <GpsButton onPress={moveToGpsLocation} />
+                    </View>
                     <WebView
                         ref={webViewRef}
                         source={{
@@ -122,6 +141,12 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         width: SCREEN_WIDTH * 0.8,
         alignSelf: "center",
+    },
+    gpsButton: {
+        position: "absolute",
+        top: SCREEN_HEIGHT * 0.1,
+        right: SCREEN_WIDTH * 0.02,
+        zIndex: 10,
     },
 });
 

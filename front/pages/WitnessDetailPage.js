@@ -1,20 +1,80 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Linking } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import Swiper from "react-native-swiper";
 import { Ionicons } from "@expo/vector-icons";
-import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
-
-const dogImages = [
-    require("../assets/dog1.jpeg"),
-    require("../assets/dog2.jpg"),
-    require("../assets/dog3.png"),
-    require("../assets/dog4.webp"),
-];
+import { formatTime, formatDate } from "../utils/formatters";
+import WebView from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 
 export default function WitnessDetailPage() {
+    // useTokenExpirationCheck();
+    const route = useRoute();
     const navigation = useNavigation();
+
+    const [postData, setPostData] = useState({
+        postId: route.params?.postId || null,
+        userId: "",
+        state: "SIGHT",
+        creatAt: "",
+        date: "",
+        address: "",
+        petType: "",
+        content: "",
+        coordinates: {
+            latitude: null,
+            longitude: null,
+        },
+        images: [],
+    });
+
+    // UTC 시간을 KST로 변환하는 함수
+    const utcConvertToKST = (utcDate) => {
+        const kstDate = new Date(utcDate);
+        kstDate.setHours(kstDate.getHours() + 9);
+        return kstDate.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    };
+
+    const getPostDetail = async () => {
+        const token = await AsyncStorage.getItem("accessToken");
+        try {
+            const response = await axios.get(`https://petfinderapp.duckdns.org/posts/found/${postData.postId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            if (response.status === 200) {
+                const result = response.data;
+                //petType, state 는 사용하지 않고 지도에서 게시글 검색 시 사용하는 정보임
+                setPostData((prev) => ({
+                    ...prev,
+                    userId: result.userId,
+                    createdAt: utcConvertToKST(result.createdAt),
+                    date: formatDate(result.date.split("T")[0]) + " " + formatTime(result.date.split("T")[1]),
+                    address: result.address,
+                    petType: result.petType,
+                    content: result.content,
+                    images: result.images,
+                    coordinates: result.coordinates,
+                }));
+                console.log("게시글 ID :", postData.postId);
+            } else {
+                console.error("게시글을 불러오는 데 실패했습니다 :", response.status);
+                Alert.Alert("오류", "게시글을 불러오는 데 실패했습니다.");
+                navigation.goBack();
+            }
+        } catch (error) {
+            Alert.alert("에러", "게시글을 불러오는 중 에러가 발생했습니다.");
+            // navigation.goBack();
+        }
+    };
+
+    useEffect(() => {
+        getPostDetail();
+    }, []);
 
     const handleEdit = () => console.log("수정 클릭");
     const handleDelete = () => console.log("삭제 클릭");
@@ -34,10 +94,10 @@ export default function WitnessDetailPage() {
                 <View style={styles.topRow}>
                     <View style={styles.userInfo}>
                         <Image source={{ uri: "https://placekitten.com/100/100" }} style={styles.avatar} />
-                        <Text style={styles.userId}>user_id 1231232</Text>
+                        <Text style={styles.userId}>{postData.userId}</Text>
                     </View>
                     <View style={styles.rightTopBox}>
-                        <Text style={styles.dateText}>게시글 등록 날짜</Text>
+                        <Text style={styles.dateText}>{postData.createdAt} 작성됨</Text>
                         <View style={styles.editButtons}>
                             <TouchableOpacity onPress={handleEdit} style={styles.editBtn}>
                                 <Text style={styles.editBtnText}>수정</Text>
@@ -55,35 +115,55 @@ export default function WitnessDetailPage() {
                 {/* 이미지 슬라이더 */}
                 <View style={styles.swiperWrapper}>
                     <Swiper showsButtons={false} dotColor="#ccc" activeDotColor="#333" loop={false}>
-                        {dogImages.map((img, index) => (
-                            <Image key={index} source={img} style={styles.dogImage} resizeMode="contain" />
+                        {(postData.images.length > 0 ? postData.images : [{ fileURL: null }]).map((img, index) => (
+                            <Image
+                                key={index}
+                                source={img.fileURL ? { uri: img.fileURL } : require("../assets/image_not_found.jpg")}
+                                style={styles.image}
+                                resizeMode="contain"
+                            />
                         ))}
                     </Swiper>
                 </View>
 
                 {/* 목격 정보 */}
                 <View style={styles.detailInfo}>
-                    <Text style={{ marginTop: 8 }}>🕒 2025년 03월 15일 오후 00:00 목격</Text>
-                    <Text>📍 경상남도 진주시 가좌동 ○○○○○</Text>
+                    <Text style={{ marginTop: 8 }}>🕒 목격 시간 : {postData.date}</Text>
+                    <Text>📍 목격 장소 : {postData.address}</Text>
                 </View>
 
                 {/* 지도 이미지 */}
-                <Image source={require("../assets/map.png")} style={styles.mapImage} />
+                <View style={styles.mapImage}>
+                    <WebView
+                        key={`${postData.coordinates.latitude}-${postData.coordinates.longitude}`}
+                        source={{
+                            uri: "https://psm1109.github.io/kakaomap-webview-hosting/kakao_map.html?mode=staticMap",
+                        }}
+                        javaScriptEnabled={true}
+                        originWhitelist={["*"]}
+                        injectedJavaScript={`
+                                            window.staticMaplatlng = {
+                                                lat: ${postData.coordinates.latitude},
+                                                lng: ${postData.coordinates.longitude}
+                                            };
+                                            true;
+                                        `}
+                    />
+                </View>
 
                 {/* 상세내용 */}
                 <View style={styles.detailBox}>
-                    <Text style={styles.detailText}>
-                        하얀 포메라니안 인 것 같고, 목격한 곳은 경상국립대학교 근처이며 빨간 목줄을 착용하고 있었습니다.
-                    </Text>
+                    <Text style={styles.detailText}>{postData.content || "상세 내용이 없습니다."}</Text>
                 </View>
+            </ScrollView>
 
-                {/* 채팅 */}
-                <View style={styles.chatButtonWrapper}>
+            <View style={styles.rewardBoxContainer}>
+                <View style={styles.rewardBox}>
                     <TouchableOpacity style={styles.chatButton}>
                         <Text style={{ color: "white" }}>채팅하기</Text>
                     </TouchableOpacity>
                 </View>
-            </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }
@@ -158,8 +238,9 @@ const styles = StyleSheet.create({
     swiperWrapper: {
         height: 250,
         marginBottom: 16,
+        backgroundColor: "#f5f5f5",
     },
-    dogImage: {
+    image: {
         width: Dimensions.get("window").width - 32,
         height: 250,
         borderRadius: 8,
@@ -204,10 +285,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
     },
+    rewardBoxContainer: {
+        borderTopWidth: 0.5,
+        borderTopColor: "#ccc",
+    },
     rewardBox: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    rewardText: {
+        fontSize: 18,
+        fontWeight: "bold",
     },
     chatButtonWrapper: {
         alignItems: "flex-end",

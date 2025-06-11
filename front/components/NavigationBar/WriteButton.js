@@ -95,7 +95,7 @@ const WriteButton = () => {
                                     styles.petTypeButton,
                                     { marginRight: 24, backgroundColor: "#f5f5f5", borderColor: "#ffb347" },
                                 ]}
-                                onPress={() => handlePetTypeSelect("개")}
+                                onPress={() => handlePetTypeSelect("DOG")}
                                 activeOpacity={0.8}
                             >
                                 <Image source={require("../../assets/dog_petType.png")} style={styles.petTypeImage} />
@@ -103,7 +103,7 @@ const WriteButton = () => {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.petTypeButton, { backgroundColor: "#f5f5f5", borderColor: "#b0a4e3" }]}
-                                onPress={() => handlePetTypeSelect("고양이")}
+                                onPress={() => handlePetTypeSelect("CAT")}
                                 activeOpacity={0.8}
                             >
                                 <Image source={require("../../assets/cat_petType.png")} style={styles.petTypeImage} />

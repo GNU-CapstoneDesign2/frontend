@@ -1,60 +1,46 @@
-import React, { useRef, useMemo, useState, useEffect } from "react";
-import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity, Image } from "react-native";
+import React, { useRef, useMemo, useState, useEffect, useContext } from "react";
+import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity } from "react-native";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaperProvider } from "react-native-paper";
+import { LocationContext } from "../contexts/LocationContext";
+import { Image } from "expo-image";
 // 네비게이션바
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 
 import { useNavigation } from "@react-navigation/native";
 // 바텀시트
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView, WINDOW_HEIGHT } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ScrollView } from "react-native-gesture-handler";
+import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
 
 // 컴포넌트
 import AlarmButton from "../components/AlarmButton";
 import AddressSearcher from "../components/AddressSearchModal";
+import GpsButton from "../components/GpsButton";
+
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-function stateBadgeColor(state) {
-    switch (state) {
-        case "실종":
-            return { backgroundColor: "#ff3b30" };
-        case "공고중":
-            return { backgroundColor: "#0057ff" };
-        case "목격":
-            return { backgroundColor: "#1abc54" };
-        case "입양대기":
-            return { backgroundColor: "#ffd600" };
-        default:
-            return { backgroundColor: "#ccc" };
-    }
-}
+import debounce from "lodash.debounce";
+import axios from "axios";
+import { formatTime, formatDate } from "../utils/formatters";
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 
 export default function MainPage() {
+    // useTokenExpirationCheck();
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
+
+    //웹뷰 통신
+    const webViewRef = useRef(null);
+
     // 검색 타입 드롭박스 상태 변수
     const [searchType, setSearchType] = useState("주소");
     const [dropdownVisible, setDropdownVisible] = useState(false);
 
     // 검색창 변수
     const [searchText, setSearchText] = useState("");
-
-    // 바텀시트 변수
-    const bottomSheetRef = useRef(null);
-    const [sheetIndex, setSheetIndex] = useState(1);
-    const snapPoints = useMemo(
-        () => [
-            SCREEN_HEIGHT / SCREEN_WIDTH > 1.8 ? SCREEN_HEIGHT * 0.11 : SCREEN_HEIGHT * 0.13,
-            SCREEN_HEIGHT * 0.35,
-            // SCREEN_HEIGHT / SCREEN_WIDTH > 1.8 ? SCREEN_HEIGHT * 0.78 : SCREEN_HEIGHT * 0.75,
-            SCREEN_HEIGHT * 0.75,
-        ],
-        [SCREEN_HEIGHT, SCREEN_WIDTH]
-    );
 
     //검색창 모달 변수
     const [modalVisible, setModalVisible] = useState(false);
@@ -64,14 +50,58 @@ export default function MainPage() {
         }
     };
 
-    //웹뷰 통신
-    const webViewRef = useRef(null);
+    // 바텀시트 변수
+    const bottomSheetRef = useRef(null);
+    const snapPoints = useMemo(
+        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.35, SCREEN_HEIGHT * 0.75],
+        [SCREEN_HEIGHT]
+    );
+    const [sheetIndex, setSheetIndex] = useState(1);
+
+    // 바텀시트 애니메이션 위치 추적
+    const animatedPosition = useSharedValue(0);
+    const animatedStyle = useAnimatedStyle(() => {
+        const isVisible = animatedPosition.value > 235;
+        return {
+            opacity: isVisible ? 1 : 0,
+            transform: [{ translateY: animatedPosition.value }],
+        };
+    });
+
+    // GPS 위치로 이동하는 함수
+    const { lastPosition } = useContext(LocationContext);
+    const moveToGpsLocation = () => {
+        if (!lastPosition) {
+            return;
+        }
+        webViewRef.current?.postMessage(
+            JSON.stringify({
+                type: "setCenter",
+                payload: {
+                    lat: lastPosition.latitude,
+                    lng: lastPosition.longitude,
+                },
+            })
+        );
+    };
 
     // 필터 버튼 상태 관리
-    const speciesFilterList = ["개", "고양이"];
+    const petTypeFilterList = ["개", "고양이"];
+    const petTypeMap = {
+        개: "DOG",
+        고양이: "CAT",
+    };
     const stateFilterList = ["실종", "목격", "공고중", "입양대기"];
-    const [speciesFilter, setSpeciesFilter] = useState(
-        speciesFilterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {})
+    const stateMap = {
+        실종: "LOST",
+        목격: "SIGHT",
+        공고중: "NOTICE",
+        입양대기: "ADOPT",
+    };
+    const reverseStateMap = Object.fromEntries(Object.entries(stateMap).map(([key, value]) => [value, key]));
+
+    const [petTypeFilter, setPetTypeFilter] = useState(
+        petTypeFilterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {})
     );
     const [stateFilter, setStateFilter] = useState(
         stateFilterList.reduce((acc, cur) => ({ ...acc, [cur]: false }), {})
@@ -79,8 +109,8 @@ export default function MainPage() {
 
     // 필터 버튼 클릭 핸들러
     const handleFilterPress = (item) => {
-        if (speciesFilterList.includes(item)) {
-            setSpeciesFilter((prev) => {
+        if (petTypeFilterList.includes(item)) {
+            setPetTypeFilter((prev) => {
                 const updated = { ...prev, [item]: !prev[item] };
                 return updated;
             });
@@ -91,73 +121,138 @@ export default function MainPage() {
             });
         }
     };
-
-    // filterStates가 바뀔 때마다 API 호출 실행
+    // 필터버튼이 클릭될 때 마다 필터쿼리 업데이트
+    const [filterQuery, setFilterQuery] = useState("states=LOST,SIGHT,NOTICE,ADOPT&petTypes=DOG,CAT");
     useEffect(() => {
-        // speciesFilter와 stateFilter를 각각 문자열로 추출
-        const selectedSpecies = Object.entries(speciesFilter)
+        const selectedPetType = Object.entries(petTypeFilter)
             .filter(([key, value]) => value)
-            .map(([key]) => key)
+            .map(([key]) => petTypeMap[key])
             .join(",");
         const selectedStates = Object.entries(stateFilter)
             .filter(([key, value]) => value)
-            .map(([key]) => key)
+            .map(([key]) => stateMap[key])
             .join(",");
-        // 예시: API 호출 시 species와 state를 각각 전달
-        let filterQuery = "";
-        if (selectedSpecies === "" && selectedStates !== "") {
-            filterQuery = `state=${selectedStates}`;
-        } else if (selectedSpecies !== "" && selectedStates === "") {
-            filterQuery = `species=${selectedSpecies}`;
-        } else if (selectedSpecies !== "" && selectedStates !== "") {
-            filterQuery = `species=${selectedSpecies}&state=${selectedStates}`;
+
+        if (selectedPetType === "" && selectedStates !== "") {
+            setFilterQuery(`states=${selectedStates}&petTypes=DOG,CAT`);
+        } else if (selectedPetType !== "" && selectedStates === "") {
+            setFilterQuery(`states=LOST,SIGHT,NOTICE,ADOPT&petTypes=${selectedPetType}`);
+        } else if (selectedPetType !== "" && selectedStates !== "") {
+            setFilterQuery(`states=${selectedStates}&petTypes=${selectedPetType}`);
         } else {
-            filterQuery = "species=개,고양이&state=실종,목격,공고중,입양대기"; // 기본값
+            setFilterQuery("states=LOST,SIGHT,NOTICE,ADOPT&petTypes=DOG,CAT");
         }
-        console.log(filterQuery);
-        // 필터값이 변경되는것을 useEffect로 감지하여 게시글,마커 찾기 api 호출
-    }, [speciesFilter, stateFilter]);
+    }, [petTypeFilter, stateFilter]);
 
-    //임시 게시글 데이터
-    const posts = [
-        {
-            postId: 101,
-            state: "실종",
-            date: "2025-04-08T15:30:00Z",
-            address: "서울 강남구",
-            description: "실종 대상에 대한 상세 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2025/05/12/11/43/golden-retriever-amber-blue-9595177_640.jpg",
-        },
-        {
-            postId: 102,
-            state: "목격",
-            date: "2025-04-07T12:00:00Z",
-            address: "부산 해운대구",
-            description: "목격 대상에 대한 간략한 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2022/10/24/14/21/puppy-7543571_640.jpg",
-        },
-        {
-            postId: 103,
-            state: "공고중",
-            date: "2025-04-08T15:30:00Z",
-            address: "서울 강남구",
-            description: "실종 대상에 대한 상세 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2014/03/05/19/23/dog-280332_640.jpg",
-        },
-        {
-            postId: 104,
-            state: "입양대기",
-            date: "2025-04-07T12:00:00Z",
-            address: "부산 해운대구",
-            description: "목격 대상에 대한 간략한 설명",
-            imageUrl: "https://cdn.pixabay.com/photo/2017/10/04/02/24/puppy-2814858_640.jpg",
-        },
-    ];
+    //필터쿼리 변경 시 api 호출
+    useEffect(() => {
+        // console.log(filterQuery);
+        if (bounds.minLat === null || bounds.maxLat === null || bounds.minLng === null || bounds.maxLng === null)
+            return;
+        fetchPosts();
+        fetchMarkers();
+    }, [filterQuery]);
 
-    // useEffect(async () => {
-    //     const accessToken = await AsyncStorage.getItem("accessToken");
-    //     console.log(accessToken);
-    // }, []);
+    const [bounds, setBounds] = useState({
+        minLat: null,
+        maxLat: null,
+        minLng: null,
+        maxLng: null,
+    });
+
+    const [posts, setPosts] = useState([]);
+
+    // 지도의 중심 위치 변경
+    const changed_center = debounce(async (minLat, maxLat, minLng, maxLng) => {
+        setBounds({ minLat, maxLat, minLng, maxLng });
+    }, 500);
+
+    //지도의 중심 위치가 변하면 게시글 조회
+    useEffect(() => {
+        if (bounds.minLat === null || bounds.maxLat === null || bounds.minLng === null || bounds.maxLng === null)
+            return;
+        fetchPosts();
+        fetchMarkers();
+    }, [bounds]);
+
+    // 지도 게시글 조회 api 호출
+    const fetchPosts = async () => {
+        try {
+            const response = await axios.get(
+                `https://petfinderapp.duckdns.org/map/posts?minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLng=${bounds.minLng}&maxLng=${bounds.maxLng}&${filterQuery}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${await AsyncStorage.getItem("accessToken")}`,
+                    },
+                }
+            );
+            if (response.status === 200) {
+                setPosts(response.data.data.content);
+            } else {
+                console.error("게시글 조회 실패:", response.statusText);
+            }
+        } catch (error) {
+            console.error("게시글 조회 실패:", error);
+        } finally {
+            // console.log(posts);
+        }
+    };
+    // 마커 호출
+    const fetchMarkers = async () => {
+        try {
+            const response = await axios.get(
+                `https://petfinderapp.duckdns.org/map/markers?minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLng=${bounds.minLng}&maxLng=${bounds.maxLng}&${filterQuery}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${await AsyncStorage.getItem("accessToken")}`,
+                    },
+                }
+            );
+            if (response.status === 200) {
+                //웹뷰로 마커 데이터 전송
+                webViewRef.current?.postMessage(
+                    JSON.stringify({
+                        type: "markerData",
+                        payload: {
+                            markers: response.data.data.markers,
+                        },
+                    })
+                );
+            } else {
+                console.error("게시글 조회 실패:", response.statusText);
+            }
+        } catch (error) {
+            console.error("게시글 조회 실패:", error);
+        } finally {
+            // console.log(posts);
+        }
+    };
+    //
+    //accessToken 확인용 코드
+    useEffect(() => {
+        const fetchToken = async () => {
+            const accessToken = await AsyncStorage.getItem("accessToken");
+            console.log(accessToken);
+        };
+        fetchToken();
+    }, []);
+    //
+    //
+    function stateBadgeColor(state) {
+        switch (state) {
+            case "LOST":
+                return { backgroundColor: "#ff3b30" };
+            case "SIGHT":
+                return { backgroundColor: "#0057ff" };
+            case "NOTICE":
+                return { backgroundColor: "#1abc54" };
+            case "ADOPT":
+                return { backgroundColor: "#ffd600" };
+            default:
+                return { backgroundColor: "#ccc" };
+        }
+    }
+
     return (
         <GestureHandlerRootView>
             <PaperProvider>
@@ -235,12 +330,12 @@ export default function MainPage() {
                     {/* 필터 버튼*/}
                     <View style={[styles.filterRowContainer, { paddingTop: insets.top }]}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {[...speciesFilterList, ...stateFilterList].map((item) => (
+                            {[...petTypeFilterList, ...stateFilterList].map((item) => (
                                 <TouchableOpacity
                                     key={item}
                                     style={[
                                         styles.filterButton,
-                                        (speciesFilter[item] || stateFilter[item]) && { backgroundColor: "#d3d3d3" },
+                                        (petTypeFilter[item] || stateFilter[item]) && { backgroundColor: "#d3d3d3" },
                                     ]}
                                     onPress={() => handleFilterPress(item)}
                                 >
@@ -260,81 +355,130 @@ export default function MainPage() {
                             }}
                             style={styles.webview}
                             javaScriptEnabled={true}
+                            onMessage={(event) => {
+                                try {
+                                    const data = JSON.parse(event.nativeEvent.data);
+                                    if (data.type === "BOUNDS") {
+                                        const { sw_bounds, ne_bounds } = data.payload;
+                                        changed_center(sw_bounds.lat, ne_bounds.lat, sw_bounds.lng, ne_bounds.lng);
+                                    }
+                                } catch (error) {
+                                    console.error(error);
+                                }
+                            }}
                         />
                     </View>
 
                     {/* 바텀시트 */}
                     {!modalVisible && (
-                        <BottomSheet
-                            ref={bottomSheetRef}
-                            index={1}
-                            snapPoints={snapPoints}
-                            onChange={(index) => {
-                                setSheetIndex(index);
-                            }}
-                            enableOverDrag={false}
-                            maxDynamicContentSize={snapPoints[2]}
-                            bottomInset={insets.bottom}
-                        >
-                            <BottomSheetView style={{ backgroundColor: "white" }}>
-                                <ScrollView
-                                    style={{ width: "100%" }}
-                                    contentContainerStyle={{ flexGrow: 1, alignItems: "center", paddingBottom: 100 }}
-                                    showsVerticalScrollIndicator={true}
-                                    nestedScrollEnabled={true}
-                                    keyboardShouldPersistTaps="handled"
-                                    bounces={true}
-                                >
-                                    {/* 게시글 목록 */}
-                                    {posts.map((post) => (
-                                        <TouchableOpacity
-                                            key={post.postId}
-                                            style={styles.postCard}
-                                            activeOpacity={0.8}
-                                            onPress={() => {
-                                                console.log(`게시글 ${post.postId}로 이동`);
+                        <>
+                            <Animated.View style={[styles.floatingButton, animatedStyle]}>
+                                <GpsButton onPress={moveToGpsLocation} />
+                            </Animated.View>
 
-                                                // 상태별로 이동할 페이지 결정
-                                                let routeName = "";
-                                                switch (post.state) {
-                                                    case "실종":
-                                                        routeName = "MissingDetailPage";
-                                                        break;
-                                                    case "목격":
-                                                        routeName = "WitnessDetailPage";
-                                                        break;
-                                                    case "공고중":
-                                                        routeName = "NoticeDetailPage";
-                                                        break;
-                                                    case "입양대기":
-                                                        routeName = "AdoptDetailPage";
-                                                        break;
-                                                    default:
-                                                        routeName = "DefaultDetailPage";
-                                                }
-                                                navigation.navigate(routeName, { postId: post.postId });
-
-                                                //페이지로 이동해서 postId와 페이지 상태값을 이용해서 상세보기 api호출
-                                            }}
-                                        >
-                                            <View style={styles.postImageWrapper}>
-                                                <Image source={{ uri: post.imageUrl }} style={styles.postImage} />
+                            <BottomSheet
+                                ref={bottomSheetRef}
+                                handleStyle={{ height: 40, backgroundColor: "transparent" }}
+                                index={1}
+                                snapPoints={snapPoints}
+                                onChange={(index) => {
+                                    setSheetIndex(index);
+                                }}
+                                enableOverDrag={false}
+                                animatedPosition={animatedPosition}
+                                bottomInset={insets.bottom}
+                            >
+                                <BottomSheetView>
+                                    <ScrollView
+                                        style={{ maxHeight: snapPoints[sheetIndex] }}
+                                        contentContainerStyle={{
+                                            alignItems: "center",
+                                            paddingBottom: 100,
+                                        }}
+                                        showsVerticalScrollIndicator={true}
+                                        nestedScrollEnabled={true}
+                                        bounces={true}
+                                    >
+                                        {posts.length !== 0 ? (
+                                            posts.map((post) => (
+                                                <TouchableOpacity
+                                                    key={post.postId}
+                                                    style={styles.postCard}
+                                                    activeOpacity={0.8}
+                                                    onPress={() => {
+                                                        let routeName = "";
+                                                        switch (post.state) {
+                                                            case "LOST":
+                                                                routeName = "MissingDetailPage";
+                                                                break;
+                                                            case "SIGHT":
+                                                                routeName = "WitnessDetailPage";
+                                                                break;
+                                                            case "NOTICE":
+                                                                routeName = "NoticeDetailPage";
+                                                                break;
+                                                            case "ADOPT":
+                                                                routeName = "AdoptDetailPage";
+                                                                break;
+                                                            default:
+                                                                routeName = "DefaultDetailPage";
+                                                        }
+                                                        navigation.navigate(routeName, { postId: post.postId });
+                                                    }}
+                                                >
+                                                    <View style={styles.postImageWrapper}>
+                                                        <Image
+                                                            source={{ uri: post.imageUrl }}
+                                                            style={styles.postImage}
+                                                        />
+                                                    </View>
+                                                    <View style={styles.postInfoWrapper}>
+                                                        <View style={[styles.stateBadge, stateBadgeColor(post.state)]}>
+                                                            <Text style={styles.stateBadgeText}>
+                                                                {reverseStateMap[post.state]}
+                                                            </Text>
+                                                        </View>
+                                                        <View>
+                                                            <Text style={styles.postInfoText}>
+                                                                시간:{" "}
+                                                                {formatDate(post.date.split("T")[0]) +
+                                                                    " " +
+                                                                    formatTime(post.date.split("T")[1])}
+                                                            </Text>
+                                                            <Text style={styles.postInfoText}>
+                                                                장소: {post.address}
+                                                            </Text>
+                                                            <Text style={styles.postInfoText}>
+                                                                설명: {post.description}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            ))
+                                        ) : (
+                                            <View style={{ flex: 1, alignItems: "center" }}>
+                                                <Image
+                                                    source={require("../assets/not_found.png")}
+                                                    style={{
+                                                        width: 50,
+                                                        height: 50,
+                                                    }}
+                                                ></Image>
+                                                <Text
+                                                    style={{
+                                                        marginTop: 20,
+                                                        fontSize: 16,
+                                                        color: "black",
+                                                    }}
+                                                >
+                                                    게시글이 없습니다.
+                                                </Text>
                                             </View>
-                                            <View style={styles.postInfoWrapper}>
-                                                <View style={[styles.stateBadge, stateBadgeColor(post.state)]}>
-                                                    <Text style={styles.stateBadgeText}>{post.state}</Text>
-                                                </View>
-                                                <View>
-                                                    <Text style={styles.postInfoText}>시간: {post.date}</Text>
-                                                    <Text style={styles.postInfoText}>장소: {post.address}</Text>
-                                                    <Text style={styles.postInfoText}>설명: {post.description}</Text>
-                                                </View>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </BottomSheetView>
-                        </BottomSheet>
+                                        )}
+                                    </ScrollView>
+                                </BottomSheetView>
+                            </BottomSheet>
+                        </>
                     )}
 
                     {/* 하단바 */}
@@ -510,5 +654,11 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: "#222",
         marginBottom: 2,
+    },
+    floatingButton: {
+        position: "absolute",
+        top: -45,
+        right: 10,
+        zIndex: 10,
     },
 });

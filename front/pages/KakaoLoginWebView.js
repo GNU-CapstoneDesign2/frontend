@@ -18,9 +18,9 @@ export default function KakaoLoginWebView() {
         if (decodedUrl.startsWith(redirectUri)) {
             const codeMatch = decodedUrl.match(/code=([^&]+)/);
             const code = codeMatch?.[1];
-
             if (code) {
                 setTimeout(async () => {
+                    AsyncStorage.clear();
                     try {
                         const response = await axios.get(
                             `https://petfinderapp.duckdns.org/auth/login/kakao?code=${code}`
@@ -28,6 +28,7 @@ export default function KakaoLoginWebView() {
                         const accessToken = response.data.data.accessToken;
                         if (accessToken) {
                             await AsyncStorage.setItem("accessToken", accessToken);
+                            // await AsyncStorage.setItem("tokenExpiredAt", Date.now().toString());
                             navigation.replace("Main");
                         } else {
                             console.error("accessToken이 응답에 없습니다.", response.data);
@@ -43,7 +44,7 @@ export default function KakaoLoginWebView() {
                     }
                 }, 0);
             }
-            return false; // 반드시 boolean 반환
+            return false;
         }
         return true;
     };

@@ -40,4 +40,4 @@ yarn-error.*
 
 kakao_map.html
 test_map.html
-temp.js
+./hooks

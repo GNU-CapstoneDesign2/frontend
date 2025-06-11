@@ -26,15 +26,18 @@ import { PaperProvider } from "react-native-paper";
 
 import DatePicker from "../components/DatePicker";
 import TimePicker from "../components/TimePicker";
-import { formatPhoneNumber } from "../utils/formatPhoneNumber";
+import { formatPhoneNumber, formatDate, formatTime } from "../utils/formatters";
 
 import AddressPicker from "../components/AddressPicker";
 import WebView from "react-native-webview";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
 import axios from "axios";
 
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 export default function MissingReportPage() {
+    // useTokenExpirationCheck();
     const route = useRoute();
     const [missingDate, setMissingDate] = useState("");
     const [missingTime, setMissingTime] = useState("");
@@ -43,19 +46,18 @@ export default function MissingReportPage() {
         date: "", //missingDate + missingTime
         address: "",
         coordinates: {
-            latitude: "", // 위도
-            longitude: "", // 경도
+            latitude: null, // 위도
+            longitude: null, // 경도
         },
-        // petType: route.params.petType,
         //선택
         description: "", // 글 설명
         images: null, // 이미지
         name: "", // 동물 이름
         gender: "암", // 성별
-        animalNum: "", // 등록번호
+        animalNum: "", // 등록번호 , 반려견만 존재하며 고양이는 등록번호 제도가 존재하지 않음
         breed: "", // 품종
         phone: "", // 연락처
-        reward: "", // 사례금
+        reward: null, // 사례금(Number)
     });
 
     const [isGenderOpen, setIsGenderOpen] = useState(false);
@@ -115,9 +117,87 @@ export default function MissingReportPage() {
         }
     };
 
-    //call API
-    const API = async () => {};
+    //폼 제출
+    const handleSubmit = async () => {
+        formData.date = formData.missingDate + "T" + formData.missingTime; //DB에서 받는 데이터 형식을 string이 아닌 dateTime ISO 8601 형식으로 설정해놓아서 KST이지만 형식만 UTC로 맞춰서 보냄
+        const jsonData = {
+            common: {
+                state: "LOST",
+                date: formData.date,
+                address: formData.address,
+                petType: route.params.petType,
+                content: formData.description,
+                coordinates: {
+                    latitude: parseFloat(formData.coordinates.latitude),
+                    longitude: parseFloat(formData.coordinates.longitude),
+                },
+            },
+            lost: {
+                name: formData.name,
+                gender: formData.gender,
+                petNum: formData.animalNum,
+                breed: formData.breed,
+                phone: formData.phone,
+                reward: formData.reward || null,
+            },
+        };
+        // 서버에서 @RequestPart("json")으로 JSON을 받고 있을 때 Expo에서는 JSON을 파일처럼 보내는 위장 방식 필요
+        // 1. JSON을 파일로 저장
+        const jsonString = JSON.stringify(jsonData);
+        const fileUri = FileSystem.documentDirectory + "data.json";
+        await FileSystem.writeAsStringAsync(fileUri, jsonString, {
+            encoding: FileSystem.EncodingType.UTF8,
+        });
+        // 2. FormData 구성
+        const formBody = new FormData();
+        formBody.append("json", {
+            uri: fileUri,
+            name: "data.json",
+            type: "application/json",
+        });
+        // 3. 이미지가 있다면 FormData에 추가
+        // 이미지가 있을 때 이미지 추가 코드 작성
+        formData.images &&
+            formData.images.forEach((imageUri, index) => {
+                const fileName = imageUri.split("/").pop(); //파일 이름
+                const ext = fileName.split(".").pop().toLowerCase(); //확장자
+                // 확장자에 따라 타입 설정
+                let type = "image/jpeg";
+                if (ext === "png") type = "image/png";
+                else if (ext === "webp") type = "image/webp";
 
+                console.timeLog(imageUri, fileName, type);
+                formBody.append("image", {
+                    uri: imageUri,
+                    name: fileName,
+                    type,
+                });
+            });
+        // 4. fetch를 사용하여 POST 요청 , axios는 network error 발생해서 대체
+        try {
+            const token = await AsyncStorage.getItem("accessToken");
+            const response = await fetch("https://petfinderapp.duckdns.org/posts/lost", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formBody,
+            });
+
+            if (response.ok) {
+                const result = await response.json(); // JSON 파싱 완료
+                console.log("게시글 등록 성공, postId : ", result);
+                navigation.navigate("SimilarPostsPage");
+            } else {
+                const errorData = await response.text();
+                console.log("서버 응답 에러:", errorData);
+                Alert.alert("오류", "게시글 등록에 실패했습니다.");
+            }
+        } catch (error) {
+            console.log("게시글 등록 에러:", error);
+            Alert.alert("오류", "게시글 등록 중 문제가 발생했습니다.");
+        }
+    };
     return (
         <SafeAreaProvider>
             <PaperProvider>
@@ -210,24 +290,25 @@ export default function MissingReportPage() {
                                         onChangeText={(text) => setFormData({ ...formData, breed: text })}
                                     />
                                 </View>
-
-                                <View style={styles.basicInfoInputRow}>
-                                    <View style={styles.labelContainer}>
-                                        <Text style={styles.label}>등록번호</Text>
+                                {route.params.petType == "DOG" && (
+                                    <View style={styles.basicInfoInputRow}>
+                                        <View style={styles.labelContainer}>
+                                            <Text style={styles.label}>등록번호</Text>
+                                        </View>
+                                        <TextInput
+                                            style={styles.basicInfoInput}
+                                            value={formData.animalNum}
+                                            mode="outlined"
+                                            activeOutlineColor="grey"
+                                            cursorColor="black"
+                                            keyboardType="phone-pad"
+                                            onChangeText={(text) => {
+                                                const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
+                                                setFormData({ ...formData, animalNum: formattedText });
+                                            }}
+                                        />
                                     </View>
-                                    <TextInput
-                                        style={styles.basicInfoInput}
-                                        value={formData.animalNum}
-                                        mode="outlined"
-                                        activeOutlineColor="grey"
-                                        cursorColor="black"
-                                        keyboardType="phone-pad"
-                                        onChangeText={(text) => {
-                                            const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
-                                            setFormData({ ...formData, animalNum: formattedText });
-                                        }}
-                                    />
-                                </View>
+                                )}
 
                                 <View style={styles.basicInfoInputRow}>
                                     <View style={styles.labelContainer}>
@@ -277,13 +358,13 @@ export default function MissingReportPage() {
                                 <Text style={styles.label}>실종 날짜/시간</Text>
                                 <View style={styles.dateTimeRow}>
                                     <DatePicker
-                                        value={formData.missingDate}
+                                        value={formatDate(formData.missingDate)}
                                         onConfirm={(formattedDate) =>
                                             setFormData({ ...formData, missingDate: formattedDate })
                                         }
                                     />
                                     <TimePicker
-                                        value={formData.missingTime}
+                                        value={formatTime(formData.missingTime)}
                                         onConfirm={(formattedTime) =>
                                             setFormData({ ...formData, missingTime: formattedTime })
                                         }
@@ -306,7 +387,7 @@ export default function MissingReportPage() {
                             </View>
 
                             <View style={styles.mapContainer}>
-                                {formData.coordinates.latitude !== "" && formData.coordinates.longitude !== "" && (
+                                {formData.coordinates.latitude !== null && formData.coordinates.longitude !== null && (
                                     <WebView
                                         key={`${formData.coordinates.latitude}-${formData.coordinates.longitude}`} //위치 재설정 동적 렌더링
                                         source={{
@@ -350,7 +431,7 @@ export default function MissingReportPage() {
                                     mode="outlined"
                                     activeOutlineColor="grey"
                                     cursorColor="black"
-                                    onChangeText={(text) => setFormData({ ...formData, reward: text })}
+                                    onChangeText={(text) => setFormData({ ...formData, reward: parseInt(text) })}
                                 />
                             </View>
 
@@ -369,57 +450,7 @@ export default function MissingReportPage() {
                                 />
                             </View>
 
-                            <TouchableOpacity
-                                style={styles.submitButton}
-                                onPress={async () => {
-                                    // try {
-                                    //     const token = await AsyncStorage.getItem("accessToken");
-                                    //     formData.date = formData.missingDate + " " + formData.missingTime;
-                                    //     const formBody = new FormData();
-                                    //     formBody.append("state", "실종");
-                                    //     formBody.append("date", formData.date);
-                                    //     formBody.append("address", formData.address);
-                                    //     formBody.append("coordinates", JSON.stringify(formData.coordinates));
-                                    //     formBody.append("petType", route.params.petType);
-                                    //     formBody.append("content", formData.description);
-                                    //     formBody.append("name", formData.name);
-                                    //     formBody.append("gender", formData.gender);
-                                    //     formBody.append("animalNum", formData.animalNum);
-                                    //     formBody.append("breed", formData.breed);
-                                    //     formBody.append("phone", formData.phone);
-                                    //     formBody.append("reward", formData.reward);
-                                    //     if (formData.images) {
-                                    //         formData.images.forEach((image, index) => {
-                                    //             formBody.append("images", {
-                                    //                 uri: image,
-                                    //                 type: "image/jpeg",
-                                    //                 name: `${Date.now()}_${index}.jpg`,
-                                    //             });
-                                    //         });
-                                    //     }
-                                    //     console.log(formBody);
-                                    //     //api 호출 코드
-                                    //     const response = await axios.post(
-                                    //         `https://petfinderapp.duckdns.org/posts/lost`,
-                                    //         formBody, //request  body
-                                    //         {
-                                    //             headers: {
-                                    //                 Authorization: `Bearer ${token}`, //Bearer 토큰 인증
-                                    //             },
-                                    //         }
-                                    //     );
-                                    //     if (response.status === 200) {
-                                    //         navigation.navigate("SimilarPostsPage");
-                                    //     } else {
-                                    //         Alert.alert("오류", "게시글 등록에 실패했습니다.");
-                                    //     }
-                                    // } catch (error) {
-                                    //     console.error(error);
-                                    //     Alert.alert("잘못된 요청입니다");
-                                    // }
-                                    navigation.navigate("SimilarPostsPage");
-                                }}
-                            >
+                            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
                                 <Text style={styles.submitButtonText}>작성완료</Text>
                             </TouchableOpacity>
                         </View>

@@ -8,7 +8,10 @@ import axios from "axios";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
+// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+
 export default function MyPage() {
+    // useTokenExpirationCheck();
     const navigation = useNavigation();
     const [userInfo, setUserInfo] = useState({
         name: "",
@@ -46,6 +49,7 @@ export default function MyPage() {
         try {
             const token = await AsyncStorage.getItem("accessToken");
 
+<<<<<<< HEAD
             const response = await axios.post(
                 "https://petfinderapp.duckdns.org/auth/logout",
                 {}, 
@@ -55,6 +59,13 @@ export default function MyPage() {
                     },
                 }
             );
+=======
+            const response = await axios.post("https://petfinderapp.duckdns.org/auth/logout", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+>>>>>>> 83741a6b1bdcdf505e5a6e7850e240bc5363000d
 
             console.log("로그아웃 응답:", response.data);
 

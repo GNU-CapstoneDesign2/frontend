@@ -31,36 +31,39 @@ import EditProfilePage from "./pages/EditProfilePage";
 //유사도 조회 페이지
 import SimilarPostsPage from "./pages/SimilarPostsPage";
 
+import { LocationProvider } from "./contexts/LocationContext";
 registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
 
 export default function App() {
     return (
-        <NavigationContainer>
-            <Stack.Navigator screenOptions={{ animation: "none", headerShown: false }}>
-                <Stack.Screen name="LoginPage" component={LoginPage} />
-                <Stack.Screen name="KakaoLoginWebView" component={KakaoLoginWebView} />
-                <Stack.Screen name="NaverLoginWebView" component={NaverLoginWebView} />
+        <LocationProvider>
+            <NavigationContainer>
+                <Stack.Navigator screenOptions={{ animation: "none", headerShown: false }}>
+                    <Stack.Screen name="LoginPage" component={LoginPage} />
+                    <Stack.Screen name="KakaoLoginWebView" component={KakaoLoginWebView} />
+                    <Stack.Screen name="NaverLoginWebView" component={NaverLoginWebView} />
 
-                <Stack.Screen name="Main" component={MainPage} />
-                <Stack.Screen name="Community" component={CommunityPage} />
+                    <Stack.Screen name="Main" component={MainPage} />
+                    <Stack.Screen name="Community" component={CommunityPage} />
 
-                <Stack.Screen name="MissingReportPage" component={MissingReportPage} />
-                <Stack.Screen name="WitnessReportPage" component={WitnessReportPage} />
-                <Stack.Screen name="MissingDetailPage" component={MissingDetailPage} />
-                <Stack.Screen name="WitnessDetailPage" component={WitnessDetailPage} />
+                    <Stack.Screen name="MissingReportPage" component={MissingReportPage} />
+                    <Stack.Screen name="WitnessReportPage" component={WitnessReportPage} />
+                    <Stack.Screen name="MissingDetailPage" component={MissingDetailPage} />
+                    <Stack.Screen name="WitnessDetailPage" component={WitnessDetailPage} />
 
-                <Stack.Screen name="AdoptDetailPage" component={AdoptDetailPage} />
-                <Stack.Screen name="NoticeDetailPage" component={NoticeDetailPage} />
+                    <Stack.Screen name="AdoptDetailPage" component={AdoptDetailPage} />
+                    <Stack.Screen name="NoticeDetailPage" component={NoticeDetailPage} />
 
-                <Stack.Screen name="ChatPage" component={ChatPage} />
-                <Stack.Screen name="ChatRoomPage" component={ChatRoomPage} />
+                    <Stack.Screen name="ChatPage" component={ChatPage} />
+                    <Stack.Screen name="ChatRoomPage" component={ChatRoomPage} />
 
-                <Stack.Screen name="MyPage" component={MyPage} />
-                <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
+                    <Stack.Screen name="MyPage" component={MyPage} />
+                    <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
 
-                <Stack.Screen name="SimilarPostsPage" component={SimilarPostsPage} />
-            </Stack.Navigator>
-        </NavigationContainer>
+                    <Stack.Screen name="SimilarPostsPage" component={SimilarPostsPage} />
+                </Stack.Navigator>
+            </NavigationContainer>
+        </LocationProvider>
     );
 }
