@@ -55,6 +55,19 @@
                         return "status-default";
                 }
             }
+            function convertToHttpsImageUrl(url) {
+                if (!url) return "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png";
+
+                // HTTP를 사용하는 이미지만 프록시 처리
+                // 공고중,입양대기 이미지를 프록시 처리 하는 문제 때문에 이미지 로딩이 늦어짐. 웹뷰 한계
+                if (url.startsWith("http://")) {
+                    const encodedUrl = encodeURIComponent(url.replace("http://", ""));
+                    return `https://images.weserv.nl/?url=${encodedUrl}`;
+                }
+
+                // 이미 HTTPS면 그대로 사용
+                return url;
+            }
 
             function createCustomMarker(lat, lng, imageUrl, status) {
                 var markerContent = document.createElement("div");
@@ -62,7 +75,7 @@
                 var circle = document.createElement("div");
                 circle.className = "custom-marker-circle " + getStatusClass(status);
                 var img = document.createElement("img");
-                img.src = imageUrl;
+                img.src = convertToHttpsImageUrl(imageUrl);
                 circle.appendChild(img);
                 markerContent.appendChild(circle);
                 var badge = document.createElement("div");
@@ -204,6 +217,15 @@
                             disableDoubleClickZoom: true,
                         };
                         map = new kakao.maps.Map(container, options);
+
+                        var markerPosition = new kakao.maps.LatLng(
+                            window.staticMaplatlng.lat,
+                            window.staticMaplatlng.lng
+                        );
+                        var marker = new kakao.maps.Marker({
+                            position: markerPosition,
+                        });
+                        marker.setMap(map);
                     }, 100);
                 });
             }

@@ -31,19 +31,17 @@ import { formatPhoneNumber, formatDate, formatTime } from "../utils/formatters";
 import AddressPicker from "../components/AddressPicker";
 import WebView from "react-native-webview";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
-import axios from "axios";
 
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+import addLostPost from "../api/addLostPost";
+
 export default function MissingReportPage() {
-    // useTokenExpirationCheck();
     const route = useRoute();
-    const [missingDate, setMissingDate] = useState("");
-    const [missingTime, setMissingTime] = useState("");
+    const navigation = useNavigation();
+
     const [formData, setFormData] = useState({
         //필수
-        date: "", //missingDate + missingTime
+        date: "",
         address: "",
         coordinates: {
             latitude: null, // 위도
@@ -62,8 +60,6 @@ export default function MissingReportPage() {
 
     const [isGenderOpen, setIsGenderOpen] = useState(false);
     const [isSelectModalVisible, setIsSelectModalVisible] = useState(false); //이미지 선택 모달
-
-    const navigation = useNavigation();
 
     //권한 요청
     useEffect(() => {
@@ -117,7 +113,7 @@ export default function MissingReportPage() {
         }
     };
 
-    //폼 제출
+    //게시글 작성
     const handleSubmit = async () => {
         formData.date = formData.missingDate + "T" + formData.missingTime; //DB에서 받는 데이터 형식을 string이 아닌 dateTime ISO 8601 형식으로 설정해놓아서 KST이지만 형식만 UTC로 맞춰서 보냄
         const jsonData = {
@@ -173,30 +169,8 @@ export default function MissingReportPage() {
                     type,
                 });
             });
-        // 4. fetch를 사용하여 POST 요청 , axios는 network error 발생해서 대체
-        try {
-            const token = await AsyncStorage.getItem("accessToken");
-            const response = await fetch("https://petfinderapp.duckdns.org/posts/lost", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-                body: formBody,
-            });
-
-            if (response.ok) {
-                const result = await response.json(); // JSON 파싱 완료
-                console.log("게시글 등록 성공, postId : ", result);
-                navigation.navigate("SimilarPostsPage");
-            } else {
-                const errorData = await response.text();
-                console.log("서버 응답 에러:", errorData);
-                Alert.alert("오류", "게시글 등록에 실패했습니다.");
-            }
-        } catch (error) {
-            console.log("게시글 등록 에러:", error);
-            Alert.alert("오류", "게시글 등록 중 문제가 발생했습니다.");
-        }
+        // 4. 실종 글 작성 api호출
+        addLostPost(formBody, navigation);
     };
     return (
         <SafeAreaProvider>
