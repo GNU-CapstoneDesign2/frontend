@@ -4,6 +4,7 @@ import { SCREEN_WIDTH } from "../utils/normalize";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { formatDate, formatTime } from "../utils/formatters";
 
 import deletePost from "../api/deletePost";
 import fetchMyPosts from "../api/fetchMyPosts";
@@ -58,7 +59,7 @@ export default function MyPostListPage() {
             activeOpacity={0.8}
         >
             {/* 이미지와 게시글 텍스트 컨테이너 */}
-            <View style={{ flex: 1, flexDirection: "row" }}>
+            <View style={{ flex: 1, flexDirection: "row", marginTop: 3, marginLeft: 3 }}>
                 <Image source={{ uri: item.imageUrl }} style={styles.image} />
 
                 <View style={styles.details}>
@@ -67,7 +68,10 @@ export default function MyPostListPage() {
                         <Text style={styles.stateText}>{item.state === "LOST" ? "실종" : "목격"}</Text>
                     </View>
                     <View style={{ marginLeft: 10 }}>
-                        <Text>시간: {new Date(item.date).toLocaleString()}</Text>
+                        <Text>
+                            시간: {formatDate(item.date.split("T")[0]) + " " + formatTime(item.date.split("T")[1])}
+                        </Text>
+
                         <Text>장소: {item.address}</Text>
                         <Text>설명: {item.description}</Text>
                     </View>
@@ -80,7 +84,7 @@ export default function MyPostListPage() {
                 <TouchableOpacity
                     style={styles.editButton}
                     onPress={() => {
-                        navigation.navigate("SimilarPostsPage", { postId: item.postId });
+                        Alert.alert("수정 페이지로 이동하는 코드");
                     }}
                 >
                     <Ionicons name="pencil" size={16} color="#000" />
@@ -206,7 +210,7 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         backgroundColor: "#fff",
         marginVertical: 3,
-        padding: 10,
+        padding: 5,
         elevation: 4,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },

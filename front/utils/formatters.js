@@ -39,5 +39,6 @@ export const formatTime = (time) => {
         period = "오후";
         formattedHours = hour - 12;
     }
+    formattedHours = String(formattedHours).padStart(2, "0");
     return `${period} ${formattedHours}시 ${minute}분`;
 };
