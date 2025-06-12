@@ -44,6 +44,12 @@ export default function MyPostListPage() {
         const success = await deletePost(postId);
         if (success) {
             Alert.alert("삭제 완료", "게시글이 삭제되었습니다.", [{ text: "확인" }]);
+            //삭제 완료 후 게시글 다시 조회
+            const getMyPosts = async () => {
+                const result = await fetchMyPosts();
+                setPosts(result);
+            };
+            getMyPosts();
         } else {
             Alert.alert("삭제 실패", "게시글 삭제에 실패했습니다.", [{ text: "확인" }]);
         }
@@ -84,7 +90,10 @@ export default function MyPostListPage() {
                 <TouchableOpacity
                     style={styles.editButton}
                     onPress={() => {
-                        Alert.alert("수정 페이지로 이동하는 코드");
+                        console.log(item.postId);
+                        navigation.navigate(item.state === "LOST" ? "EditMissingReportPage" : "EditWitnessReportPage", {
+                            postId: item.postId,
+                        });
                     }}
                 >
                     <Ionicons name="pencil" size={16} color="#000" />
