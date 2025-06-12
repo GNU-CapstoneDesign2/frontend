@@ -34,6 +34,8 @@ import SimilarPostsPage from "./pages/SimilarPostsPage";
 
 import { LocationProvider } from "./contexts/LocationContext";
 
+import { enableScreens } from "react-native-screens";
+enableScreens();
 registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
 
