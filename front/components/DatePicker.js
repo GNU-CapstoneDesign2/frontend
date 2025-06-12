@@ -4,7 +4,7 @@ import { TextInput } from "react-native-paper";
 import { DatePickerModal } from "react-native-paper-dates";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-const DatePicker = ({ value, onConfirm, style }) => {
+const DatePicker = ({ value, onConfirm, disabled = false, style }) => {
     const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     const onDismiss = useCallback(() => {
@@ -28,7 +28,11 @@ const DatePicker = ({ value, onConfirm, style }) => {
 
     return (
         <>
-            <TouchableOpacity style={[styles.touchable, style]} onPress={() => setDatePickerVisible(true)}>
+            <TouchableOpacity
+                style={[styles.touchable, style]}
+                onPress={() => !disabled && setDatePickerVisible(true)}
+                activeOpacity={disabled ? 1 : 0.7}
+            >
                 <TextInput
                     style={styles.input}
                     value={value}

@@ -7,7 +7,7 @@ import AddressSearchModal from "./AddressSearchModal";
 import { LocationContext } from "../contexts/LocationContext";
 import GpsButton from "./GpsButton";
 
-const AddressPicker = ({ onChange }) => {
+const AddressPicker = ({ value, onChange }) => {
     const [isWebviewModalVisible, setIsWebviewModalVisible] = React.useState(false);
     const webViewRef = useRef(null);
     const [missingAddress, setMissingAddress] = useState("");
@@ -48,7 +48,7 @@ const AddressPicker = ({ onChange }) => {
         <View>
             <TouchableOpacity onPress={() => setIsWebviewModalVisible(true)}>
                 <TextInput
-                    value={missingAddress}
+                    value={value ? value : missingAddress}
                     style={styles.input}
                     mode="outlined"
                     activeOutlineColor="grey"
