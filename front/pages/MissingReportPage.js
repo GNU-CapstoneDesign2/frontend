@@ -170,7 +170,10 @@ export default function MissingReportPage() {
                 });
             });
         // 4. 실종 글 작성 api호출
-        addLostPost(formBody, navigation);
+        const result = await addLostPost(formBody);
+        if (result) {
+            navigation.navigate("SimilarPostsPage", { postId: result });
+        }
     };
     return (
         <SafeAreaProvider>

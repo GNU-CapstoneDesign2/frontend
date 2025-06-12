@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { PaperProvider } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { SCREEN_HEIGHT, SCREEN_WIDTH, normalize } from "../utils/normalize";
@@ -12,12 +12,15 @@ import LottieView from "lottie-react-native";
 
 export default function SimilarPostsPage() {
     const navigation = useNavigation();
+    const route = useRoute();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         // TODO: 실제 API 엔드포인트로 교체
+        console.log(route.params.postId); // 호출에 사용 되어야할 postId 값
+
         const fetchData = async () => {
             setLoading(true);
             setError(null);
