@@ -31,7 +31,6 @@ export default function WitnessReportPage() {
     const route = useRoute();
     const navigation = useNavigation();
 
-    const [imageUri, setImageUri] = useState(null);
     const [formData, setFormData] = useState({
         witnessDate: "", //목격 날짜
         witnessTime: "", //목격 시간
@@ -86,8 +85,10 @@ export default function WitnessReportPage() {
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const selectedImages = result.assets.map((asset) => asset.uri);
-                setImageUri(selectedImages);
-                console.log(selectedImages);
+                setFormData({
+                    ...formData,
+                    images: selectedImages,
+                });
             }
         } catch (error) {
             Alert.alert("오류", "카메라를 여는 중 문제가 발생했습니다.");

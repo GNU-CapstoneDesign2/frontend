@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 //api
 import fetchMyInfo from "../api/fetchMyinfo";
-import updateMyInfo from "../api/updateMyInfo";
+import editMyInfo from "../api/editMyInfo";
 import deleteUser from "../api/deleteUser";
 
 export default function EditProfilePage() {
@@ -103,7 +103,7 @@ export default function EditProfilePage() {
             imageUrl: imageUrl,
         };
         //저장 api 호출
-        updateMyInfo(body, navigation);
+        editMyInfo(body, navigation);
     };
 
     // 계정 탈퇴
