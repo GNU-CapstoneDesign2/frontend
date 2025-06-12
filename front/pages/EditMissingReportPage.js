@@ -208,7 +208,7 @@ export default function MissingReportPage() {
         // 4. 실종 글 수정 api호출
         const result = await editLostPage(formBody, route.params.postId);
         if (result) {
-            navigation.navigate("MyPostListPage");
+            navigation.goBack();
         }
     };
     return (

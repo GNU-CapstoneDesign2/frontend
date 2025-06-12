@@ -170,7 +170,7 @@ export default function WitnessReportPage() {
         // 4. 목격 글 수정 api호출
         const result = await editSightPage(formBody, route.params.postId);
         if (result) {
-            navigation.navigate("MyPostListPage");
+            navigation.goBack();
         }
     };
 
