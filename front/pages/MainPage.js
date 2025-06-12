@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useContext } from "react";
-import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity } from "react-native";
+import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity, Dimensions } from "react-native";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaperProvider } from "react-native-paper";
@@ -13,7 +13,7 @@ import debounce from "lodash.debounce";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 
 // 바텀시트
-import BottomSheet, { BottomSheetView, WINDOW_HEIGHT } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ScrollView } from "react-native-gesture-handler";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
@@ -29,6 +29,7 @@ import fetchPosts from "../api/fetchPosts";
 import fetchMarkers from "../api/fetchMarkers";
 
 export default function MainPage() {
+    const screenHeight = Dimensions.get("window").height;
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
 
@@ -55,7 +56,7 @@ export default function MainPage() {
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(
-        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.35, SCREEN_HEIGHT * 0.75],
+        () => [SCREEN_HEIGHT * 0.11, SCREEN_HEIGHT * 0.35, SCREEN_HEIGHT * 0.65],
         [SCREEN_HEIGHT]
     );
     const [sheetIndex, setSheetIndex] = useState(1);
@@ -63,7 +64,7 @@ export default function MainPage() {
     // 바텀시트 애니메이션 위치 추적
     const animatedPosition = useSharedValue(0);
     const animatedStyle = useAnimatedStyle(() => {
-        const isVisible = animatedPosition.value > 235;
+        const isVisible = animatedPosition.value > screenHeight * 0.4;
         return {
             opacity: isVisible ? 1 : 0,
             transform: [{ translateY: animatedPosition.value }],
@@ -329,7 +330,7 @@ export default function MainPage() {
 
                             <BottomSheet
                                 ref={bottomSheetRef}
-                                handleStyle={{ height: 40, backgroundColor: "transparent" }}
+                                handleStyle={{ height: 30, backgroundColor: "transparent" }}
                                 index={1}
                                 snapPoints={snapPoints}
                                 onChange={(index) => {
@@ -555,12 +556,12 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         paddingHorizontal: SCREEN_WIDTH * 0.04,
         paddingVertical: SCREEN_HEIGHT * 0.008,
-        marginRight: SCREEN_WIDTH * 0.027,
-        borderRadius: SCREEN_WIDTH * 0.067,
+        marginRight: 10,
+        borderRadius: 25,
     },
     filterButtonText: {
         color: "#333",
-        fontSize: SCREEN_WIDTH * 0.04,
+        fontSize: SCREEN_HEIGHT * 0.02,
     },
     postCard: {
         flexDirection: "row",

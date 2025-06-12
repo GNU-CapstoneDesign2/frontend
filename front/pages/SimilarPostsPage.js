@@ -9,6 +9,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { SCREEN_HEIGHT, SCREEN_WIDTH, normalize } from "../utils/normalize";
 
 import LottieView from "lottie-react-native";
+
 export default function SimilarPostsPage() {
     const navigation = useNavigation();
     const [posts, setPosts] = useState([]);
