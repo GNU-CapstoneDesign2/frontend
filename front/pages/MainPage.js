@@ -351,7 +351,7 @@ export default function MainPage() {
                                         nestedScrollEnabled={true}
                                         bounces={true}
                                     >
-                                        {posts.length !== 0 ? (
+                                        {posts && posts.length !== 0 ? (
                                             posts.map((post) => (
                                                 <TouchableOpacity
                                                     key={post.postId}
