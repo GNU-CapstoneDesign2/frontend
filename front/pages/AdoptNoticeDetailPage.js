@@ -45,6 +45,7 @@ export default function AdoptNoticeDetailPage() {
     useEffect(() => {
         const fetchPostDetail = async () => {
             const result = await fetchAdoptNoticePostDetail(postData.postId);
+            console.log(result.common);
             setPostData((prev) => ({
                 ...prev,
                 state: result.common.state,
@@ -78,7 +79,7 @@ export default function AdoptNoticeDetailPage() {
         };
         fetchPostDetail();
     }, []);
-
+    const isValidURL = (url) => typeof url === "string" && url.startsWith("http");
     return (
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
             {/* 헤더 */}
@@ -94,14 +95,22 @@ export default function AdoptNoticeDetailPage() {
                 {/* 동물 사진 */}
                 <View style={styles.swiperWrapper}>
                     <Swiper showsButtons={false} dotColor="#ccc" activeDotColor="#333" loop={false}>
-                        {(postData.images.length > 0 ? postData.images : [{ fileURL: null }]).map((img, index) => (
+                        {postData.images.length > 0 ? (
+                            postData.images.map((img, index) => (
+                                <Image
+                                    key={index}
+                                    source={{ uri: img.fileURL }}
+                                    style={styles.image}
+                                    contentFit="contain"
+                                />
+                            ))
+                        ) : (
                             <Image
-                                key={index}
-                                source={img.fileURL ? { uri: img.fileURL } : require("../assets/image_not_found.jpg")}
+                                source={require("../assets/image_not_found.jpg")}
                                 style={styles.image}
                                 contentFit="contain"
                             />
-                        ))}
+                        )}
                     </Swiper>
                 </View>
 
