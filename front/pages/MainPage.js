@@ -22,11 +22,13 @@ import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanima
 import AlarmButton from "../components/AlarmButton";
 import AddressSearcher from "../components/AddressSearchModal";
 import GpsButton from "../components/GpsButton";
+import PetNumSearchWarningModal from "../components/petNumSearchWarningModal";
 //utils
 import { formatTime, formatDate } from "../utils/formatters";
 //api
 import fetchPosts from "../api/fetchPosts";
 import fetchMarkers from "../api/fetchMarkers";
+import searchPetNum from "../api/searchPetNum";
 
 export default function MainPage() {
     const screenHeight = Dimensions.get("window").height;
@@ -44,7 +46,8 @@ export default function MainPage() {
 
     // 검색창 변수
     const [searchText, setSearchText] = useState("");
-
+    const [warningModalVisible, setWarnigModalVisible] = useState(false);
+    const [warningModalMessage, setWarningModalMessage] = useState("");
     //검색창 모달 변수
     const [modalVisible, setModalVisible] = useState(false);
     const openModal = () => {
@@ -205,6 +208,23 @@ export default function MainPage() {
         }
     }
 
+    const searchByPetNum = async (searchText) => {
+        const result = await searchPetNum(searchText);
+        webViewRef.current?.postMessage(
+            JSON.stringify({
+                type: "setCenter",
+                payload: {
+                    lat: result.coordinates.latitude,
+                    lng: result.coordinates.longitude,
+                },
+            })
+        );
+        if (result) {
+        } else {
+            setWarnigModalVisible(true);
+            setWarningModalMessage("해당 등록번호를 조회할 수 없습니다.");
+        }
+    };
     return (
         <GestureHandlerRootView>
             <PaperProvider>
@@ -241,6 +261,22 @@ export default function MainPage() {
                                     onChangeText={setSearchText}
                                     editable={searchType !== "주소"}
                                     pointerEvents="none"
+                                    maxLength={15}
+                                    keyboardType="numeric"
+                                    onSubmitEditing={() => {
+                                        if (isNaN(searchText) || searchText.length !== 15) {
+                                            setWarnigModalVisible(true);
+                                            setWarningModalMessage("등록번호는 15자리 숫자여야 합니다.");
+                                        } else {
+                                            searchByPetNum(searchText);
+                                            setSearchText("");
+                                        }
+                                    }}
+                                />
+                                <PetNumSearchWarningModal
+                                    visible={warningModalVisible}
+                                    onDismiss={() => setWarnigModalVisible(false)}
+                                    message={warningModalMessage}
                                 />
                             </TouchableOpacity>
                         </View>
