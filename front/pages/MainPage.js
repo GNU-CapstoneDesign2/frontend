@@ -59,7 +59,7 @@ export default function MainPage() {
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(
-        () => [SCREEN_HEIGHT * 0.11, SCREEN_HEIGHT * 0.35, SCREEN_HEIGHT * 0.65],
+        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.45, SCREEN_HEIGHT * 0.75],
         [SCREEN_HEIGHT]
     );
     const [sheetIndex, setSheetIndex] = useState(1);
@@ -375,8 +375,10 @@ export default function MainPage() {
                                 enableOverDrag={false}
                                 animatedPosition={animatedPosition}
                                 bottomInset={insets.bottom}
+                                enableContentPanningGesture={false}
+                                enableDynamicSizing={false}
                             >
-                                <BottomSheetView>
+                                <BottomSheetView style={{ flex: 1 }}>
                                     <ScrollView
                                         style={{ maxHeight: snapPoints[sheetIndex] }}
                                         contentContainerStyle={{
