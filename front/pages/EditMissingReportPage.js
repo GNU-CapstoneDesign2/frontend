@@ -313,25 +313,23 @@ export default function MissingReportPage() {
                                         onChangeText={(text) => setFormData({ ...formData, breed: text })}
                                     />
                                 </View>
-                                {formData.petType == "DOG" && (
-                                    <View style={styles.basicInfoInputRow}>
-                                        <View style={styles.labelContainer}>
-                                            <Text style={styles.label}>등록번호</Text>
-                                        </View>
-                                        <TextInput
-                                            style={styles.basicInfoInput}
-                                            value={formData.petNum}
-                                            mode="outlined"
-                                            activeOutlineColor="grey"
-                                            cursorColor="black"
-                                            keyboardType="phone-pad"
-                                            onChangeText={(text) => {
-                                                const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
-                                                setFormData({ ...formData, animalNum: formattedText });
-                                            }}
-                                        />
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>등록번호</Text>
                                     </View>
-                                )}
+                                    <TextInput
+                                        style={styles.basicInfoInput}
+                                        value={formData.petNum}
+                                        mode="outlined"
+                                        activeOutlineColor="grey"
+                                        cursorColor="black"
+                                        keyboardType="phone-pad"
+                                        onChangeText={(text) => {
+                                            const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
+                                            setFormData({ ...formData, petNum: formattedText });
+                                        }}
+                                    />
+                                </View>
 
                                 <View style={styles.basicInfoInputRow}>
                                     <View style={styles.labelContainer}>
