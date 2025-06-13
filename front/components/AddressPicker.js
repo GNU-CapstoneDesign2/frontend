@@ -1,6 +1,6 @@
 import React, { useState, useRef, useContext } from "react";
-import { StyleSheet, View, TouchableOpacity, Modal } from "react-native";
-import { TextInput, Appbar, Button } from "react-native-paper";
+import { StyleSheet, View, TouchableOpacity, Modal, TextInput } from "react-native";
+import { Appbar, Button } from "react-native-paper";
 import { WebView } from "react-native-webview";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import AddressSearchModal from "./AddressSearchModal";
@@ -50,16 +50,24 @@ const AddressPicker = ({ value, onChange }) => {
                 <TextInput
                     value={value ? value : missingAddress}
                     style={styles.input}
-                    mode="outlined"
-                    activeOutlineColor="grey"
                     cursorColor="black"
                     editable={false}
                 />
             </TouchableOpacity>
             <Modal visible={isWebviewModalVisible} onRequestClose={() => setIsWebviewModalVisible(false)}>
-                <View style={{ paddingTop: 0, backgroundColor: "#fff", flex: 1 }}>
-                    <Appbar.Header style={{ marginTop: 0, paddingTop: 0 }} statusBarHeight={0}>
+                <View style={{ flex: 1 }}>
+                    <Appbar.Header
+                        style={{
+                            marginTop: 0,
+                            paddingTop: 0,
+                            backgroundColor: "white",
+                            borderBottomWidth: 1,
+                            borderBottomColor: "#ddd",
+                        }}
+                        statusBarHeight={0}
+                    >
                         <Appbar.BackAction
+                            iconColor="black"
                             onPress={() => {
                                 setIsWebviewModalVisible(false);
                             }}
@@ -67,6 +75,7 @@ const AddressPicker = ({ value, onChange }) => {
                         <Appbar.Content title="지도에서 위치 설정" titleStyle={styles.title} />
                         <Appbar.Action
                             icon="magnify"
+                            iconColor="black"
                             onPress={() => {
                                 setIsAddressSearchModalVisible(true);
                             }}
@@ -120,11 +129,15 @@ const styles = StyleSheet.create({
         width: "100%",
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
+        borderWidth: 1,
+        paddingLeft: 8,
+        borderRadius: 4,
         backgroundColor: "white",
     },
     title: {
         fontSize: SCREEN_WIDTH * 0.04,
         fontWeight: "bold",
+        color: "black",
         textAlign: "center",
     },
     selectButtonContainer: {

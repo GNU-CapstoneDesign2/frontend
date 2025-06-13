@@ -1,54 +1,8 @@
-import React, { useState, useCallback } from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
-import { TextInput } from "react-native-paper";
+import React, { useState } from "react";
+import { TouchableOpacity, StyleSheet, TextInput } from "react-native";
 import { TimePickerModal } from "react-native-paper-dates";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-// const TimePicker = ({ value, onConfirm, style }) => {
-//     const [timePickerVisible, setTimePickerVisible] = useState(false);
-
-//     const onDismiss = useCallback(() => {
-//         setTimePickerVisible(false);
-//     }, []);
-
-//     const handleConfirm = useCallback(
-//         ({ hours, minutes }) => {
-//             const formattedHours = String(hours).padStart(2, "0");
-//             const formattedMinutes = String(minutes).padStart(2, "0");
-//             const formattedTime = `${formattedHours}:${formattedMinutes}:00`; // ISO 8601 포맷, timePicker에서 초는 지원x 형식만 갖춤
-//             onConfirm(formattedTime);
-//             setTimePickerVisible(false);
-//         },
-//         [onConfirm]
-//     );
-
-//     return (
-//         <>
-//             <TouchableOpacity style={[styles.touchable, style]} onPress={() => setTimePickerVisible(true)}>
-//                 <TextInput
-//                     style={styles.input}
-//                     value={value}
-//                     mode="outlined"
-//                     activeOutlineColor="grey"
-//                     cursorColor="black"
-//                     editable={false}
-//                 />
-//             </TouchableOpacity>
-//             <TimePickerModal
-//                 locale="ko"
-//                 visible={timePickerVisible}
-//                 onDismiss={onDismiss}
-//                 onConfirm={handleConfirm}
-//                 hours={new Date().getHours()}
-//                 minutes={new Date().getMinutes()}
-//                 defaultInputType="keyboard"
-//                 label="시간 선택"
-//                 cancelLabel="취소"
-//                 confirmLabel="확인"
-//             />
-//         </>
-//     );
-// };
 const TimePicker = ({ value, onConfirm, disabled = false, style }) => {
     const [timePickerVisible, setTimePickerVisible] = useState(false);
 
@@ -65,13 +19,11 @@ const TimePicker = ({ value, onConfirm, disabled = false, style }) => {
             <TouchableOpacity
                 style={[styles.touchable, style]}
                 onPress={() => !disabled && setTimePickerVisible(true)}
-                activeOpacity={disabled ? 1 : 0.7} // 비활성화 시 터치 애니메이션 제거
+                activeOpacity={disabled ? 1 : 0.3}
             >
                 <TextInput
                     style={[styles.input, disabled && styles.disabledInput]}
                     value={value}
-                    mode="outlined"
-                    activeOutlineColor="grey"
                     cursorColor="black"
                     editable={false}
                 />
@@ -99,6 +51,9 @@ const styles = StyleSheet.create({
     input: {
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
+        borderWidth: 1,
+        paddingLeft: 8,
+        borderRadius: 4,
         backgroundColor: "white",
     },
 });
