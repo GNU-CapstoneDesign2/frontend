@@ -59,7 +59,7 @@ export default function MainPage() {
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(
-        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.45, SCREEN_HEIGHT * 0.75],
+        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.45, SCREEN_HEIGHT * 0.65],
         [SCREEN_HEIGHT]
     );
     const [sheetIndex, setSheetIndex] = useState(1);
@@ -210,16 +210,17 @@ export default function MainPage() {
 
     const searchByPetNum = async (searchText) => {
         const result = await searchPetNum(searchText);
-        webViewRef.current?.postMessage(
-            JSON.stringify({
-                type: "setCenter",
-                payload: {
-                    lat: result.coordinates.latitude,
-                    lng: result.coordinates.longitude,
-                },
-            })
-        );
+
         if (result) {
+            webViewRef.current?.postMessage(
+                JSON.stringify({
+                    type: "setCenter",
+                    payload: {
+                        lat: result.coordinates.latitude,
+                        lng: result.coordinates.longitude,
+                    },
+                })
+            );
         } else {
             setWarnigModalVisible(true);
             setWarningModalMessage("해당 등록번호를 조회할 수 없습니다.");
