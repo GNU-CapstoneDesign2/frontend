@@ -5,9 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH } from "../utils/normalize";
 import { PaperProvider } from "react-native-paper";
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
+
 export default function ChatPage() {
-    // useTokenExpirationCheck();
     const navigation = useNavigation();
 
     const chatList = [
@@ -17,9 +16,10 @@ export default function ChatPage() {
     ];
 
     const renderChatItem = ({ item }) => (
-        <TouchableOpacity style={styles.chatItem} onPress={() => navigation.navigate("ChatRoomPage")}>
+        // 가데이터로 룸페이지 넘겨줌
+        <TouchableOpacity style={styles.chatItem} onPress={() => navigation.navigate("ChatRoomPage", { roomId: 1 })}>
             <Image
-                source={require("../assets/avatar.png")} // 여기에 본인 아바타 이미지 경로 지정
+                source={require("../assets/avatar.png")}
                 style={styles.avatar}
             />
             <View style={styles.chatContent}>
