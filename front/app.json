@@ -20,10 +20,16 @@
             "adaptiveIcon": {
                 "foregroundImage": "./assets/adaptive-icon.png",
                 "backgroundColor": "#ffffff"
+            },
+            "package": "com.parkseonmin.petfinder",
+            "config": {
+                "cleartextTraffic": true
             }
         },
-        "web": {
-            "favicon": "./assets/favicon.png"
+        "extra": {
+            "eas": {
+                "projectId": "c3302070-1d4f-4c7a-b980-c73a2d5b60e5"
+            }
         }
     }
 }

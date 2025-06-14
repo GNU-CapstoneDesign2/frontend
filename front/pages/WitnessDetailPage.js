@@ -75,28 +75,8 @@ export default function WitnessDetailPage() {
                         <Image source={{ uri: "https://placekitten.com/100/100" }} style={styles.avatar} />
                         <Text style={styles.userId}>{postData.userId}</Text>
                     </View>
-                    <View style={styles.rightTopBox}>
+                    <View>
                         <Text style={styles.dateText}>{postData.createdAt} 작성됨</Text>
-                        <View style={styles.editButtons}>
-                            <TouchableOpacity onPress={handleEdit} style={styles.editBtn}>
-                                <Text style={styles.editBtnText}>수정</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={async () => {
-                                    const success = await deletePost(postData.postId);
-                                    if (success) {
-                                        Alert.alert("삭제 완료", "게시글이 삭제되었습니다.", [
-                                            { text: "확인", onPress: () => navigation.navigate("Main") },
-                                        ]);
-                                    } else {
-                                        Alert.alert("삭제 실패", "권한이 없습니다.");
-                                    }
-                                }}
-                                style={[styles.editBtn, { backgroundColor: "#ddd" }]}
-                            >
-                                <Text style={[styles.editBtnText, { color: "#000" }]}>삭제</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
                 </View>
 
@@ -184,7 +164,8 @@ const styles = StyleSheet.create({
     topRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginVertical: 12,
+        alignItems: "center",
+        marginVertical: 13,
     },
     userInfo: {
         flexDirection: "row",
@@ -201,27 +182,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    rightTopBox: {
-        alignItems: "flex-end",
-        gap: 4,
-    },
     dateText: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: "500",
         color: "#888",
-    },
-    editButtons: {
-        flexDirection: "row",
-        gap: 6,
-    },
-    editBtn: {
-        backgroundColor: "#f09090",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    editBtnText: {
-        color: "white",
-        fontWeight: "bold",
     },
     swiperWrapper: {
         height: 250,

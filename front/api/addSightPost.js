@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default addSightPost = async (formData, navigation) => {
+export default addSightPost = async (formData) => {
     const token = await AsyncStorage.getItem("accessToken");
     try {
         const response = await fetch("https://petfinderapp.duckdns.org/posts/found", {
@@ -14,11 +14,12 @@ export default addSightPost = async (formData, navigation) => {
         if (response.ok) {
             const result = await response.json();
             console.log("게시글 등록 성공, postId : ", result);
-            navigation.navigate("SimilarPostsPage");
+            return result;
         } else {
             const errorData = await response.text();
             console.log("서버 응답 오류:", errorData);
             Alert.alert("오류", "게시글 등록에 실패했습니다.");
+            return 0;
         }
     } catch (error) {
         console.log("게시글 등록 에러:", error);

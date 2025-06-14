@@ -1,17 +1,15 @@
 //010-0000-0000 변환
 export const formatPhoneNumber = (phoneNumber) => {
-    const numericText = phoneNumber.replace(/[^0-9]/g, "");
+    const numericText = phoneNumber.replace(/[^0-9]/g, "").slice(0, 11); // 숫자 11자리까지만
 
-    let formattedText = numericText;
-    if (numericText.length > 3 && numericText.length <= 7) {
-        formattedText = `${numericText.slice(0, 3)}-${numericText.slice(3)}`;
-    } else if (numericText.length > 7) {
-        formattedText = `${numericText.slice(0, 3)}-${numericText.slice(3, 7)}-${numericText.slice(7, 11)}`;
+    if (numericText.length <= 3) {
+        return numericText;
+    } else if (numericText.length <= 7) {
+        return `${numericText.slice(0, 3)}-${numericText.slice(3)}`;
+    } else {
+        return `${numericText.slice(0, 3)}-${numericText.slice(3, 7)}-${numericText.slice(7)}`;
     }
-
-    return formattedText;
 };
-
 //ISO 8601 포맷의 날짜를 'yyyy년 mm월 dd일' 형태로 변환
 export const formatDate = (date) => {
     // date: 'yyyy-mm-dd' 형태
@@ -39,5 +37,6 @@ export const formatTime = (time) => {
         period = "오후";
         formattedHours = hour - 12;
     }
+    formattedHours = String(formattedHours).padStart(2, "0");
     return `${period} ${formattedHours}시 ${minute}분`;
 };

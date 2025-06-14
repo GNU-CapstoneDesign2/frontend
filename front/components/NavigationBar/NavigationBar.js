@@ -5,7 +5,7 @@ import CommunityButton from "./CommunityButton";
 import ChatButton from "./ChatButton";
 import WriteButton from "./WriteButton";
 import MyPageButton from "./MyPageButton";
-import { SCREEN_WIDTH } from "../../utils/normalize";
+import { SCREEN_HEIGHT } from "../../utils/normalize";
 
 const NavigationBar = () => {
     return (
@@ -27,8 +27,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderTopWidth: 1,
         borderTopColor: "#ddd",
-        height: SCREEN_WIDTH * 0.15,
-        paddingVertical: SCREEN_WIDTH * 0.02,
+        height: SCREEN_HEIGHT * 0.08,
     },
 });
 export default NavigationBar;

@@ -31,9 +31,13 @@ import MyPostListPage from "./pages/MyPostListPage";
 
 //유사도 조회 페이지
 import SimilarPostsPage from "./pages/SimilarPostsPage";
+//게시글 수정 페이지
+import EditMissingReportPage from "./pages/EditMissingReportPage";
+import EditWitnessReportPage from "./pages/EditWitnessReportPage";
 
 import { LocationProvider } from "./contexts/LocationContext";
-
+import { enableScreens } from "react-native-screens";
+enableScreens();
 registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
 
@@ -62,6 +66,8 @@ export default function App() {
                     <Stack.Screen name="MyPage" component={MyPage} />
                     <Stack.Screen name="EditProfilePage" component={EditProfilePage} />
                     <Stack.Screen name="MyPostListPage" component={MyPostListPage} />
+                    <Stack.Screen name="EditMissingReportPage" component={EditMissingReportPage} />
+                    <Stack.Screen name="EditWitnessReportPage" component={EditWitnessReportPage} />
 
                     <Stack.Screen name="SimilarPostsPage" component={SimilarPostsPage} />
                 </Stack.Navigator>

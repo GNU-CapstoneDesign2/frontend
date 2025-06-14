@@ -34,10 +34,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-
-./android
-
-kakao_map.html
-test_map.html
-./hooks

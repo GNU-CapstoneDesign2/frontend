@@ -1,10 +1,9 @@
 import React, { useState, useCallback } from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
-import { TextInput } from "react-native-paper";
+import { TouchableOpacity, StyleSheet, TextInput } from "react-native";
 import { DatePickerModal } from "react-native-paper-dates";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-const DatePicker = ({ value, onConfirm, style }) => {
+const DatePicker = ({ value, onConfirm, disabled = false, style }) => {
     const [datePickerVisible, setDatePickerVisible] = useState(false);
 
     const onDismiss = useCallback(() => {
@@ -28,15 +27,12 @@ const DatePicker = ({ value, onConfirm, style }) => {
 
     return (
         <>
-            <TouchableOpacity style={[styles.touchable, style]} onPress={() => setDatePickerVisible(true)}>
-                <TextInput
-                    style={styles.input}
-                    value={value}
-                    mode="outlined"
-                    activeOutlineColor="grey"
-                    cursorColor="black"
-                    editable={false}
-                />
+            <TouchableOpacity
+                style={[styles.touchable, style]}
+                onPress={() => !disabled && setDatePickerVisible(true)}
+                activeOpacity={disabled ? 1 : 0.3}
+            >
+                <TextInput style={styles.input} value={value} editable={false} />
             </TouchableOpacity>
             <DatePickerModal
                 mode="single"
@@ -57,6 +53,9 @@ const styles = StyleSheet.create({
     input: {
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
+        borderWidth: 1,
+        paddingLeft: 8,
+        borderRadius: 4,
         backgroundColor: "white",
     },
 });

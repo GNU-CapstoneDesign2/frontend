@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useContext } from "react";
-import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity } from "react-native";
+import { TextInput, StyleSheet, View, StatusBar, Text, TouchableOpacity, Dimensions } from "react-native";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { PaperProvider } from "react-native-paper";
@@ -13,7 +13,7 @@ import debounce from "lodash.debounce";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 
 // 바텀시트
-import BottomSheet, { BottomSheetView, WINDOW_HEIGHT } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ScrollView } from "react-native-gesture-handler";
 import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
@@ -22,13 +22,16 @@ import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanima
 import AlarmButton from "../components/AlarmButton";
 import AddressSearcher from "../components/AddressSearchModal";
 import GpsButton from "../components/GpsButton";
+import PetNumSearchWarningModal from "../components/petNumSearchWarningModal";
 //utils
 import { formatTime, formatDate } from "../utils/formatters";
 //api
 import fetchPosts from "../api/fetchPosts";
 import fetchMarkers from "../api/fetchMarkers";
+import searchPetNum from "../api/searchPetNum";
 
 export default function MainPage() {
+    const screenHeight = Dimensions.get("window").height;
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
 
@@ -43,7 +46,8 @@ export default function MainPage() {
 
     // 검색창 변수
     const [searchText, setSearchText] = useState("");
-
+    const [warningModalVisible, setWarnigModalVisible] = useState(false);
+    const [warningModalMessage, setWarningModalMessage] = useState("");
     //검색창 모달 변수
     const [modalVisible, setModalVisible] = useState(false);
     const openModal = () => {
@@ -55,7 +59,7 @@ export default function MainPage() {
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(
-        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.35, SCREEN_HEIGHT * 0.75],
+        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.45, SCREEN_HEIGHT * 0.65],
         [SCREEN_HEIGHT]
     );
     const [sheetIndex, setSheetIndex] = useState(1);
@@ -63,7 +67,7 @@ export default function MainPage() {
     // 바텀시트 애니메이션 위치 추적
     const animatedPosition = useSharedValue(0);
     const animatedStyle = useAnimatedStyle(() => {
-        const isVisible = animatedPosition.value > 235;
+        const isVisible = animatedPosition.value > screenHeight * 0.4;
         return {
             opacity: isVisible ? 1 : 0,
             transform: [{ translateY: animatedPosition.value }],
@@ -204,6 +208,24 @@ export default function MainPage() {
         }
     }
 
+    const searchByPetNum = async (searchText) => {
+        const result = await searchPetNum(searchText);
+
+        if (result) {
+            webViewRef.current?.postMessage(
+                JSON.stringify({
+                    type: "setCenter",
+                    payload: {
+                        lat: result.coordinates.latitude,
+                        lng: result.coordinates.longitude,
+                    },
+                })
+            );
+        } else {
+            setWarnigModalVisible(true);
+            setWarningModalMessage("해당 등록번호를 조회할 수 없습니다.");
+        }
+    };
     return (
         <GestureHandlerRootView>
             <PaperProvider>
@@ -240,6 +262,22 @@ export default function MainPage() {
                                     onChangeText={setSearchText}
                                     editable={searchType !== "주소"}
                                     pointerEvents="none"
+                                    maxLength={15}
+                                    keyboardType="numeric"
+                                    onSubmitEditing={() => {
+                                        if (isNaN(searchText) || searchText.length !== 15) {
+                                            setWarnigModalVisible(true);
+                                            setWarningModalMessage("등록번호는 15자리 숫자여야 합니다.");
+                                        } else {
+                                            searchByPetNum(searchText);
+                                            setSearchText("");
+                                        }
+                                    }}
+                                />
+                                <PetNumSearchWarningModal
+                                    visible={warningModalVisible}
+                                    onDismiss={() => setWarnigModalVisible(false)}
+                                    message={warningModalMessage}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -329,7 +367,7 @@ export default function MainPage() {
 
                             <BottomSheet
                                 ref={bottomSheetRef}
-                                handleStyle={{ height: 40, backgroundColor: "transparent" }}
+                                handleStyle={{ height: 30, backgroundColor: "transparent" }}
                                 index={1}
                                 snapPoints={snapPoints}
                                 onChange={(index) => {
@@ -338,8 +376,10 @@ export default function MainPage() {
                                 enableOverDrag={false}
                                 animatedPosition={animatedPosition}
                                 bottomInset={insets.bottom}
+                                enableContentPanningGesture={false}
+                                enableDynamicSizing={false}
                             >
-                                <BottomSheetView>
+                                <BottomSheetView style={{ flex: 1 }}>
                                     <ScrollView
                                         style={{ maxHeight: snapPoints[sheetIndex] }}
                                         contentContainerStyle={{
@@ -350,7 +390,7 @@ export default function MainPage() {
                                         nestedScrollEnabled={true}
                                         bounces={true}
                                     >
-                                        {posts.length !== 0 ? (
+                                        {posts && posts.length !== 0 ? (
                                             posts.map((post) => (
                                                 <TouchableOpacity
                                                     key={post.postId}
@@ -555,12 +595,12 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
         paddingHorizontal: SCREEN_WIDTH * 0.04,
         paddingVertical: SCREEN_HEIGHT * 0.008,
-        marginRight: SCREEN_WIDTH * 0.027,
-        borderRadius: SCREEN_WIDTH * 0.067,
+        marginRight: 10,
+        borderRadius: 25,
     },
     filterButtonText: {
         color: "#333",
-        fontSize: SCREEN_WIDTH * 0.04,
+        fontSize: SCREEN_HEIGHT * 0.02,
     },
     postCard: {
         flexDirection: "row",

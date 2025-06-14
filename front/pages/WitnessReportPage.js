@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     Modal,
     TouchableWithoutFeedback,
+    TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -22,7 +23,7 @@ import DatePicker from "../components/DatePicker";
 import TimePicker from "../components/TimePicker";
 import AddressPicker from "../components/AddressPicker";
 import { WebView } from "react-native-webview";
-import { TextInput, Provider as PaperProvider } from "react-native-paper";
+import { Provider as PaperProvider } from "react-native-paper";
 import * as FileSystem from "expo-file-system";
 import { formatDate, formatTime } from "../utils/formatters";
 import addSightPost from "../api/addSightPost";
@@ -30,8 +31,8 @@ import addSightPost from "../api/addSightPost";
 export default function WitnessReportPage() {
     const route = useRoute();
     const navigation = useNavigation();
+    const [focusedField, setFocusedField] = useState(null);
 
-    const [imageUri, setImageUri] = useState(null);
     const [formData, setFormData] = useState({
         witnessDate: "", //목격 날짜
         witnessTime: "", //목격 시간
@@ -86,8 +87,10 @@ export default function WitnessReportPage() {
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 const selectedImages = result.assets.map((asset) => asset.uri);
-                setImageUri(selectedImages);
-                console.log(selectedImages);
+                setFormData({
+                    ...formData,
+                    images: selectedImages,
+                });
             }
         } catch (error) {
             Alert.alert("오류", "카메라를 여는 중 문제가 발생했습니다.");
@@ -142,7 +145,10 @@ export default function WitnessReportPage() {
             });
 
         //4. 목격 글 작성 api 호출
-        addSightPost(formBody, navigation);
+        const result = await addSightPost(formBody); //결과로 postId
+        if (result) {
+            navigation.navigate("SimilarPostsPage", { postId: result });
+        }
     };
 
     return (
@@ -263,15 +269,24 @@ export default function WitnessReportPage() {
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>설명</Text>
                                 <TextInput
-                                    style={[styles.input, styles.descriptionInput]}
+                                    style={[
+                                        styles.input,
+                                        styles.descriptionInput,
+                                        { borderWidth: focusedField === "content" ? 1.5 : 1 },
+                                    ]}
                                     multiline
                                     numberOfLines={4}
                                     placeholder="특징을 적어주세요."
-                                    value={formData.description}
-                                    mode="outlined"
+                                    placeholderTextColor="grey"
+                                    value={formData.content}
                                     cursorColor="black"
-                                    activeOutlineColor="grey"
-                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                    onChangeText={(text) => setFormData({ ...formData, content: text })}
+                                    onFocus={() => {
+                                        setFocusedField("content");
+                                    }}
+                                    onBlur={() => {
+                                        setFocusedField(null);
+                                    }}
                                 />
                             </View>
 
@@ -371,9 +386,15 @@ const styles = StyleSheet.create({
     },
     input: {
         width: "100%",
-        fontSize: SCREEN_WIDTH * 0.04,
+        fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
         backgroundColor: "white",
+        borderColor: "black",
+        borderRadius: 4,
+        paddingVertical: 5,
+        paddingLeft: 8,
+        textAlign: "left",
+        textAlignVertical: "center",
     },
     mapSelectButton: {
         backgroundColor: "#f0f0f0",
@@ -397,6 +418,7 @@ const styles = StyleSheet.create({
     descriptionInput: {
         height: SCREEN_HEIGHT * 0.15,
         textAlignVertical: "top",
+        paddingTop: 5,
     },
     submitButton: {
         backgroundColor: "#f0f0f0",

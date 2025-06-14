@@ -10,8 +10,8 @@ import {
     TouchableOpacity,
     Modal,
     TouchableWithoutFeedback,
+    TextInput,
 } from "react-native";
-import { TextInput } from "react-native-paper";
 
 import * as ImagePicker from "expo-image-picker";
 import ImageSelectButton from "../components/ImageSelectButton";
@@ -60,6 +60,7 @@ export default function MissingReportPage() {
 
     const [isGenderOpen, setIsGenderOpen] = useState(false);
     const [isSelectModalVisible, setIsSelectModalVisible] = useState(false); //이미지 선택 모달
+    const [focusedField, setFocusedField] = useState(null);
 
     //권한 요청
     useEffect(() => {
@@ -170,7 +171,10 @@ export default function MissingReportPage() {
                 });
             });
         // 4. 실종 글 작성 api호출
-        addLostPost(formBody, navigation);
+        const result = await addLostPost(formBody);
+        if (result) {
+            navigation.navigate("SimilarPostsPage", { postId: result });
+        }
     };
     return (
         <SafeAreaProvider>
@@ -242,12 +246,15 @@ export default function MissingReportPage() {
                                         <Text style={styles.label}>이름</Text>
                                     </View>
                                     <TextInput
-                                        style={styles.basicInfoInput}
+                                        style={[
+                                            styles.basicInfoInput,
+                                            { borderWidth: focusedField === "name" ? 1.5 : 1 },
+                                        ]}
                                         value={formData.name}
-                                        mode="outlined"
-                                        activeOutlineColor="grey"
                                         cursorColor="black"
                                         onChangeText={(text) => setFormData({ ...formData, name: text })}
+                                        onFocus={() => setFocusedField("name")}
+                                        onBlur={() => setFocusedField(null)}
                                     />
                                 </View>
 
@@ -256,40 +263,45 @@ export default function MissingReportPage() {
                                         <Text style={styles.label}>품종</Text>
                                     </View>
                                     <TextInput
-                                        style={styles.basicInfoInput}
+                                        style={[
+                                            styles.basicInfoInput,
+                                            { borderWidth: focusedField === "breed" ? 1.5 : 1 },
+                                        ]}
                                         value={formData.breed}
-                                        mode="outlined"
-                                        activeOutlineColor="grey"
                                         cursorColor="black"
                                         onChangeText={(text) => setFormData({ ...formData, breed: text })}
+                                        onFocus={() => setFocusedField("breed")}
+                                        onBlur={() => setFocusedField(null)}
                                     />
                                 </View>
-                                {route.params.petType == "DOG" && (
-                                    <View style={styles.basicInfoInputRow}>
-                                        <View style={styles.labelContainer}>
-                                            <Text style={styles.label}>등록번호</Text>
-                                        </View>
-                                        <TextInput
-                                            style={styles.basicInfoInput}
-                                            value={formData.animalNum}
-                                            mode="outlined"
-                                            activeOutlineColor="grey"
-                                            cursorColor="black"
-                                            keyboardType="phone-pad"
-                                            onChangeText={(text) => {
-                                                const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
-                                                setFormData({ ...formData, animalNum: formattedText });
-                                            }}
-                                        />
+                                <View style={styles.basicInfoInputRow}>
+                                    <View style={styles.labelContainer}>
+                                        <Text style={styles.label}>등록번호</Text>
                                     </View>
-                                )}
+                                    <TextInput
+                                        style={[
+                                            styles.basicInfoInput,
+                                            { borderWidth: focusedField === "petNum" ? 1.5 : 1 },
+                                        ]}
+                                        value={formData.petNum}
+                                        cursorColor="black"
+                                        keyboardType="numeric"
+                                        maxLength={15}
+                                        onChangeText={(text) => {
+                                            const formattedText = text.replace(/[^0-9]/g, "").slice(0, 15);
+                                            setFormData({ ...formData, petNum: formattedText });
+                                        }}
+                                        onFocus={() => setFocusedField("petNum")}
+                                        onBlur={() => setFocusedField(null)}
+                                    />
+                                </View>
 
                                 <View style={styles.basicInfoInputRow}>
                                     <View style={styles.labelContainer}>
                                         <Text style={styles.label}>성별</Text>
                                     </View>
                                     <TouchableOpacity
-                                        style={styles.dropdownButton}
+                                        style={[styles.dropdownButton, { borderWidth: isGenderOpen ? 1.5 : 1 }]}
                                         onPress={() => setIsGenderOpen(!isGenderOpen)}
                                     >
                                         <Text style={styles.dropdownButtonText}>{formData.gender}</Text>
@@ -383,44 +395,52 @@ export default function MissingReportPage() {
                             <View style={styles.inputRow}>
                                 <Text style={styles.label}>연락처</Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { borderWidth: focusedField === "phone" ? 1.5 : 1 }]}
                                     value={formData.phone}
                                     placeholder="010-0000-0000"
-                                    mode="outlined"
-                                    activeOutlineColor="grey"
+                                    placeholderTextColor="grey"
                                     cursorColor="black"
-                                    keyboardType="phone-pad" // 숫자 키패드 활성화
+                                    keyboardType="phone-pad"
+                                    maxLength={13}
                                     onChangeText={(text) => {
                                         const formattedText = formatPhoneNumber(text);
                                         setFormData({ ...formData, phone: formattedText });
                                     }}
+                                    onFocus={() => setFocusedField("phone")}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </View>
 
                             <View style={styles.inputRow}>
                                 <Text style={styles.label}>사례금</Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, { borderWidth: focusedField === "reward" ? 1.5 : 1 }]}
                                     value={formData.reward}
-                                    mode="outlined"
-                                    activeOutlineColor="grey"
                                     cursorColor="black"
-                                    onChangeText={(text) => setFormData({ ...formData, reward: parseInt(text) })}
+                                    keyboardType="numeric"
+                                    onChangeText={(text) => setFormData({ ...formData, reward: text })}
+                                    onFocus={() => setFocusedField("reward")}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </View>
 
                             <View style={styles.inputRow}>
                                 <Text style={styles.label}>설명</Text>
                                 <TextInput
-                                    style={[styles.input, styles.descriptionInput]}
+                                    style={[
+                                        styles.input,
+                                        styles.descriptionInput,
+                                        { borderWidth: focusedField === "content" ? 1.5 : 1 },
+                                    ]}
                                     multiline
                                     numberOfLines={4}
                                     placeholder="특징을 적어주세요."
-                                    value={formData.description}
-                                    mode="outlined"
-                                    activeOutlineColor="grey"
+                                    placeholderTextColor="grey"
+                                    value={formData.content}
                                     cursorColor="black"
-                                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                                    onChangeText={(text) => setFormData({ ...formData, content: text })}
+                                    onFocus={() => setFocusedField("content")}
+                                    onBlur={() => setFocusedField(null)}
                                 />
                             </View>
 
@@ -523,6 +543,13 @@ const styles = StyleSheet.create({
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.05,
         backgroundColor: "white",
+        borderColor: "black",
+        borderRadius: 4,
+        fontSize: 14,
+        paddingVertical: 0,
+        paddingLeft: 8,
+        textAlign: "left",
+        textAlignVertical: "center",
     },
 
     labelContainer: {
@@ -550,6 +577,13 @@ const styles = StyleSheet.create({
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
         backgroundColor: "white",
+
+        borderColor: "black",
+        borderRadius: 4,
+        paddingVertical: 0,
+        paddingLeft: 8,
+        textAlign: "left",
+        textAlignVertical: "center",
     },
     //성별
     dropdownButton: {
@@ -560,7 +594,7 @@ const styles = StyleSheet.create({
         height: SCREEN_HEIGHT * 0.05,
         paddingHorizontal: SCREEN_WIDTH * 0.027,
         borderWidth: 1,
-        borderColor: "#ddd",
+        borderColor: "black",
         borderRadius: SCREEN_WIDTH * 0.013,
         backgroundColor: "white",
     },
@@ -597,6 +631,7 @@ const styles = StyleSheet.create({
     descriptionInput: {
         height: SCREEN_HEIGHT * 0.2,
         textAlignVertical: "top",
+        paddingTop: 5,
     },
 
     //제출 버튼

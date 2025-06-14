@@ -1,39 +1,34 @@
-import React, { useState, useCallback } from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
-import { TextInput } from "react-native-paper";
+import React, { useState } from "react";
+import { TouchableOpacity, StyleSheet, TextInput } from "react-native";
 import { TimePickerModal } from "react-native-paper-dates";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 
-const TimePicker = ({ value, onConfirm, style }) => {
+const TimePicker = ({ value, onConfirm, disabled = false, style }) => {
     const [timePickerVisible, setTimePickerVisible] = useState(false);
 
-    const onDismiss = useCallback(() => {
-        setTimePickerVisible(false);
-    }, []);
+    const onDismiss = () => setTimePickerVisible(false);
 
-    const handleConfirm = useCallback(
-        ({ hours, minutes }) => {
-            const formattedHours = String(hours).padStart(2, "0");
-            const formattedMinutes = String(minutes).padStart(2, "0");
-            const formattedTime = `${formattedHours}:${formattedMinutes}:00`; // ISO 8601 포맷, timePicker에서 초는 지원x 형식만 갖춤
-            onConfirm(formattedTime);
-            setTimePickerVisible(false);
-        },
-        [onConfirm]
-    );
+    const handleConfirm = ({ hours, minutes }) => {
+        const formattedTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        onConfirm(formattedTime);
+        setTimePickerVisible(false);
+    };
 
     return (
         <>
-            <TouchableOpacity style={[styles.touchable, style]} onPress={() => setTimePickerVisible(true)}>
+            <TouchableOpacity
+                style={[styles.touchable, style]}
+                onPress={() => !disabled && setTimePickerVisible(true)}
+                activeOpacity={disabled ? 1 : 0.3}
+            >
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, disabled && styles.disabledInput]}
                     value={value}
-                    mode="outlined"
-                    activeOutlineColor="grey"
                     cursorColor="black"
                     editable={false}
                 />
             </TouchableOpacity>
+
             <TimePickerModal
                 locale="ko"
                 visible={timePickerVisible}
@@ -49,7 +44,6 @@ const TimePicker = ({ value, onConfirm, style }) => {
         </>
     );
 };
-
 const styles = StyleSheet.create({
     touchable: {
         width: "48%",
@@ -57,6 +51,9 @@ const styles = StyleSheet.create({
     input: {
         fontSize: SCREEN_WIDTH * 0.037,
         height: SCREEN_HEIGHT * 0.06,
+        borderWidth: 1,
+        paddingLeft: 8,
+        borderRadius: 4,
         backgroundColor: "white",
     },
 });

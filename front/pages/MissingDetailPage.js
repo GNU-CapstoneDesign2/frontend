@@ -7,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatTime, formatDate } from "../utils/formatters"; // 날짜 포맷팅 유틸리티 함수
 import WebView from "react-native-webview";
 //api
-import deletePost from "../api/deletePost";
 import fetchLostDetail from "../api/fetchLostDetail";
 // import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 
@@ -56,7 +55,8 @@ export default function MissingDetailPage() {
                 petNum: result["lost"].petNum,
                 phone: result["lost"].phone,
                 reward: result["lost"].reward,
-                petType: result["lost"].petType,
+
+                petType: result["common"].petType,
                 createdAt: utcConvertToKST(result["common"].createdAt),
                 date:
                     formatDate(result["common"].date.split("T")[0]) +
@@ -73,7 +73,6 @@ export default function MissingDetailPage() {
     }, []);
 
     const handleEdit = () => console.log("수정 클릭");
-
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top", "bottom"]}>
             {/*  커스텀 헤더 */}
@@ -92,28 +91,8 @@ export default function MissingDetailPage() {
                         {/* 사용자 ID는 실제 사용자 ID또는 user의 닉네임이 필요한 것이 아닌가, 또 게시글 작성자의 프로필 사진과 닉네임은 어떻게 받아올 것인가*/}
                         <Text style={styles.userId}>{postData.userId}</Text>
                     </View>
-                    <View style={styles.rightTopBox}>
+                    <View>
                         <Text style={styles.dateText}>{postData.createdAt} 작성됨</Text>
-                        <View style={styles.editButtons}>
-                            <TouchableOpacity onPress={handleEdit} style={styles.editBtn}>
-                                <Text style={styles.editBtnText}>수정</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={async () => {
-                                    const success = await deletePost(postData.postId);
-                                    if (success) {
-                                        Alert.alert("삭제 완료", "게시글이 삭제되었습니다.", [
-                                            { text: "확인", onPress: () => navigation.navigate("Main") },
-                                        ]);
-                                    } else {
-                                        Alert.alert("삭제 실패", "권한이 없습니다.");
-                                    }
-                                }}
-                                style={[styles.editBtn, { backgroundColor: "#ddd" }]}
-                            >
-                                <Text style={[styles.editBtnText, { color: "#000" }]}>삭제</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
                 </View>
 
@@ -142,12 +121,10 @@ export default function MissingDetailPage() {
                     </View>
 
                     <View style={styles.rowWrap}>
-                        {postData.peyType == "개" && (
-                            <>
-                                <Text style={styles.label}>등록번호 :</Text>
-                                <Text style={styles.value}>{postData.petNum}</Text>
-                            </>
-                        )}
+                        <>
+                            <Text style={styles.label}>등록번호 :</Text>
+                            <Text style={styles.value}>{postData.petNum}</Text>
+                        </>
                         <Text style={styles.label}>품종 :</Text>
                         <Text style={styles.value}>{postData.breed}</Text>
                     </View>
@@ -229,7 +206,8 @@ const styles = StyleSheet.create({
     topRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginVertical: 12,
+        alignItems: "center",
+        marginVertical: 13,
     },
     userInfo: {
         flexDirection: "row",
@@ -246,27 +224,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    rightTopBox: {
-        alignItems: "flex-end",
-        gap: 4,
-    },
     dateText: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: "500",
         color: "#888",
-    },
-    editButtons: {
-        flexDirection: "row",
-        gap: 6,
-    },
-    editBtn: {
-        backgroundColor: "#f09090",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    editBtnText: {
-        color: "white",
-        fontWeight: "bold",
     },
     swiperWrapper: {
         height: 250,
