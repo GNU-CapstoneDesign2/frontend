@@ -30,6 +30,9 @@ import fetchPosts from "../api/fetchPosts";
 import fetchMarkers from "../api/fetchMarkers";
 import searchPetNum from "../api/searchPetNum";
 
+import { registerForPushNotificationsAsync } from "../api/firebaseMessaging";
+import * as Notifications from "expo-notifications";
+
 export default function MainPage() {
     const screenHeight = Dimensions.get("window").height;
     const insets = useSafeAreaInsets();
@@ -58,10 +61,7 @@ export default function MainPage() {
 
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(
-        () => [SCREEN_HEIGHT * 0.12, SCREEN_HEIGHT * 0.45, SCREEN_HEIGHT * 0.65],
-        [SCREEN_HEIGHT]
-    );
+    const snapPoints = useMemo(() => [SCREEN_HEIGHT * 0.05, SCREEN_HEIGHT * 0.3, SCREEN_HEIGHT * 0.7], [SCREEN_HEIGHT]);
     const [sheetIndex, setSheetIndex] = useState(1);
 
     // 바텀시트 애니메이션 위치 추적
@@ -172,26 +172,29 @@ export default function MainPage() {
         loadPosts();
         const loadMarkers = async () => {
             const markersData = await fetchMarkers({ bounds, filterQuery });
+
+            // 좌표 중복 마커 제거
+            const uniqueMarkersMap = new Map();
+            markersData.forEach((item) => {
+                const key = `${item.coordinate.latitude},${item.coordinate.longitude}`;
+                if (!uniqueMarkersMap.has(key)) {
+                    uniqueMarkersMap.set(key, item);
+                }
+            });
+            const uniqueMarkers = Array.from(uniqueMarkersMap.values());
+
+            console.log(uniqueMarkers);
             webViewRef.current?.postMessage(
                 JSON.stringify({
                     type: "markerData",
                     payload: {
-                        markers: markersData || [],
+                        markers: uniqueMarkers || [],
                     },
                 })
             );
         };
         loadMarkers();
     }, [bounds, filterQuery]);
-
-    //accessToken 확인용 코드
-    useEffect(() => {
-        const fetchToken = async () => {
-            const accessToken = await AsyncStorage.getItem("accessToken");
-            console.log(accessToken);
-        };
-        fetchToken();
-    }, []);
 
     function stateBadgeColor(state) {
         switch (state) {
@@ -226,6 +229,25 @@ export default function MainPage() {
             setWarningModalMessage("해당 등록번호를 조회할 수 없습니다.");
         }
     };
+
+    useEffect(() => {
+        // 로그인 후  알람 권한을 요청하고 fcm 토큰을 받는 함수 -> 받아서 서버에 전송
+        registerForPushNotificationsAsync();
+
+        //accessToken 확인용 코드
+        // const fetchToken = async () => {
+        //     const accessToken = await AsyncStorage.getItem("accessToken");
+        //     console.log("accessToken : ", accessToken);
+        // };
+        // fetchToken();
+
+        //fcm 토큰 확인 코드
+        // const asd = async () => {
+        //     const fcm = await AsyncStorage.getItem("storedFcmToken");
+        //     console.log("fcmToken : ", fcm);
+        // };
+        // asd();
+    }, []);
     return (
         <GestureHandlerRootView>
             <PaperProvider>
@@ -234,7 +256,11 @@ export default function MainPage() {
                     {/*헤더 타이틀*/}
                     <View style={styles.header}>
                         <Text style={styles.title}>홈</Text>
-                        <AlarmButton />
+                        <AlarmButton
+                            onPress={() => {
+                                navigation.navigate("Alarm");
+                            }}
+                        />
                     </View>
 
                     {/* 검색창 */}
@@ -367,7 +393,7 @@ export default function MainPage() {
 
                             <BottomSheet
                                 ref={bottomSheetRef}
-                                handleStyle={{ height: 30, backgroundColor: "transparent" }}
+                                handleStyle={{ height: 40, backgroundColor: "transparent" }}
                                 index={1}
                                 snapPoints={snapPoints}
                                 onChange={(index) => {
@@ -375,7 +401,7 @@ export default function MainPage() {
                                 }}
                                 enableOverDrag={false}
                                 animatedPosition={animatedPosition}
-                                bottomInset={insets.bottom}
+                                bottomInset={SCREEN_HEIGHT * 0.08}
                                 enableContentPanningGesture={false}
                                 enableDynamicSizing={false}
                             >
