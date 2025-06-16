@@ -10,7 +10,7 @@ export default deleteUser = async (navigation) => {
             headers: { Authorization: `Bearer ${token}` },
         });
         //storage와 화면 stack을 비우고 로그인 페이지로 이동함
-        await AsyncStorage.clear();
+        await AsyncStorage.removeItem("accessToken");
         navigation.dispatch(
             CommonActions.reset({
                 index: 0,

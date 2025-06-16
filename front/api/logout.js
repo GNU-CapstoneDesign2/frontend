@@ -15,7 +15,7 @@ export default logout = async (navigation) => {
             }
         );
         if (response.status == 200) {
-            await AsyncStorage.clear();
+            await AsyncStorage.removeItem("accessToken");
             navigation.dispatch(
                 CommonActions.reset({
                     index: 0,
