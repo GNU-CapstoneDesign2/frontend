@@ -15,10 +15,10 @@ export default fetchAdoptNoticePostDetail = async (postId) => {
             return result;
         } else {
             console.error("게시글을 불러오는 데 실패했습니다 :", response.status);
-            Alert.Alert("오류", "게시글을 불러오는 데 실패했습니다.");
-            navigation.goBack();
+            return 0;
         }
     } catch (error) {
         console.error("게시글을 불러오는 중 에러가 발생했습니다 :", error);
+        return 0;
     }
 };

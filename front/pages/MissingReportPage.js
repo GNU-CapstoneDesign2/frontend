@@ -48,11 +48,11 @@ export default function MissingReportPage() {
             longitude: null, // 경도
         },
         //선택
-        description: "", // 글 설명
+        content: "", // 글 설명
         images: null, // 이미지
         name: "", // 동물 이름
         gender: "암", // 성별
-        animalNum: "", // 등록번호 , 반려견만 존재하며 고양이는 등록번호 제도가 존재하지 않음
+        animalNum: "", //
         breed: "", // 품종
         phone: "", // 연락처
         reward: null, // 사례금(Number)
@@ -123,7 +123,7 @@ export default function MissingReportPage() {
                 date: formData.date,
                 address: formData.address,
                 petType: route.params.petType,
-                content: formData.description,
+                content: formData.content,
                 coordinates: {
                     latitude: parseFloat(formData.coordinates.latitude),
                     longitude: parseFloat(formData.coordinates.longitude),
@@ -132,7 +132,7 @@ export default function MissingReportPage() {
             lost: {
                 name: formData.name,
                 gender: formData.gender,
-                petNum: formData.animalNum,
+                petNum: formData.petNum,
                 breed: formData.breed,
                 phone: formData.phone,
                 reward: formData.reward || null,

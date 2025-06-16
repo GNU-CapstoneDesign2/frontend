@@ -7,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatTime, formatDate } from "../utils/formatters";
 import WebView from "react-native-webview";
 //api
-import deletePost from "../api/deletePost";
 import fetchSightDetail from "../api/fetchSightDetail";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -39,25 +38,29 @@ export default function WitnessDetailPage() {
     };
 
     useEffect(() => {
-        // getPostDetail();
         const fetchPostDetail = async () => {
             const result = await fetchSightDetail(postData.postId);
-            setPostData((prev) => ({
-                ...prev,
-                userId: result.userId,
-                createdAt: utcConvertToKST(result.createdAt),
-                date: formatDate(result.date.split("T")[0]) + " " + formatTime(result.date.split("T")[1]),
-                address: result.address,
-                petType: result.petType,
-                content: result.content,
-                images: result.images,
-                coordinates: result.coordinates,
-            }));
+            if (result) {
+                setPostData((prev) => ({
+                    ...prev,
+                    userId: result.userId,
+                    createdAt: utcConvertToKST(result.createdAt),
+                    date: formatDate(result.date.split("T")[0]) + " " + formatTime(result.date.split("T")[1]),
+                    address: result.address,
+                    petType: result.petType,
+                    content: result.content,
+                    images: result.images,
+                    coordinates: result.coordinates,
+                    writerName: result.userName,
+                    writerProfileImg: result.userImg,
+                }));
+            } else {
+                Alert.alert("해당 게시글을 찾을 수 없습니다.");
+                navigation.goBack();
+            }
         };
         fetchPostDetail();
     }, []);
-
-    const handleEdit = () => console.log("수정 클릭");
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -73,8 +76,8 @@ export default function WitnessDetailPage() {
                 {/* 사용자 정보 + 등록일 + 수정/삭제 */}
                 <View style={styles.topRow}>
                     <View style={styles.userInfo}>
-                        <Image source={{ uri: "https://placekitten.com/100/100" }} style={styles.avatar} />
-                        <Text style={styles.userId}>{postData.userId}</Text>
+                        <Image source={{ uri: postData.writerProfileImg }} style={styles.avatar} />
+                        <Text style={styles.userId}>{postData.writerName}</Text>
                     </View>
                     <View>
                         <Text style={styles.dateText}>{postData.createdAt} 작성됨</Text>
@@ -226,7 +229,7 @@ const styles = StyleSheet.create({
     swiperWrapper: {
         height: 250,
         marginBottom: 16,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "black",
     },
     image: {
         width: Dimensions.get("window").width - 32,
@@ -295,5 +298,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 12,
         borderRadius: 8,
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    fullscreenImage: {
+        width: "100%",
+        height: "100%",
     },
 });

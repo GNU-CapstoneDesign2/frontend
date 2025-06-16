@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Dimensions, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -42,44 +42,57 @@ export default function AdoptNoticeDetailPage() {
             longitude: null,
         },
     });
+    const [modalVisible, setModalVisible] = useState(false);
+
     useEffect(() => {
         const fetchPostDetail = async () => {
             const result = await fetchAdoptNoticePostDetail(postData.postId);
-            console.log(result.common);
-            setPostData((prev) => ({
-                ...prev,
-                state: result.common.state,
-                createdAt:
-                    formatDate(result.common.createdAt.split("T")[0]) +
-                    " " +
-                    formatTime(result.common.createdAt.split("T")[1]),
-                desertionNum: result.adopt.desertionNum,
-                date: formatDate(result.common.date.split("T")[0]) + " " + formatTime(result.common.date.split("T")[1]),
-                address: result.common.address,
-                petType: result.common.petType,
-                color: result.adopt.color,
-                age: result.adopt.age,
-                weight: result.adopt.weight,
-                gender: result.adopt.gender === "M" ? "수" : "암",
-                neuter: result.adopt.neuter === "NOT_NEUTERED" ? "중성화 O" : "중성화 X",
-                startDate:
-                    formatDate(result.adopt.startDate.split("T")[0]) +
-                    " " +
-                    formatTime(result.adopt.startDate.split("T")[1]),
-                endDate:
-                    formatDate(result.adopt.endDate.split("T")[0]) +
-                    " " +
-                    formatTime(result.adopt.endDate.split("T")[1]),
-                content: result.common.content,
-                shelterName: result.adopt.shelterName,
-                sheleterPhone: result.adopt.shelterPhone,
-                images: result.common.images,
-                coordinates: result.common.coordinates,
-            }));
+            if (result) {
+                setPostData((prev) => ({
+                    ...prev,
+                    state: result.common.state,
+                    createdAt:
+                        formatDate(result.common.createdAt.split("T")[0]) +
+                        " " +
+                        formatTime(result.common.createdAt.split("T")[1]),
+                    desertionNum: result.adopt.desertionNum,
+                    date:
+                        formatDate(result.common.date.split("T")[0]) +
+                        " " +
+                        formatTime(result.common.date.split("T")[1]),
+                    address: result.common.address,
+                    petType: result.common.petType,
+                    color: result.adopt.color,
+                    age: result.adopt.age,
+                    weight: result.adopt.weight,
+                    gender: result.adopt.gender === "M" ? "수" : "암",
+                    neuter:
+                        result.adopt.neuter === "UNKNOWN"
+                            ? "알 수 없음"
+                            : result.adopt.neuter === "NOT_NEUTERED"
+                            ? "중성화 X"
+                            : "중성화 O",
+                    startDate:
+                        formatDate(result.adopt.startDate.split("T")[0]) +
+                        " " +
+                        formatTime(result.adopt.startDate.split("T")[1]),
+                    endDate:
+                        formatDate(result.adopt.endDate.split("T")[0]) +
+                        " " +
+                        formatTime(result.adopt.endDate.split("T")[1]),
+                    content: result.common.content,
+                    shelterName: result.adopt.shelterName,
+                    sheleterPhone: result.adopt.shelterPhone,
+                    images: result.common.images,
+                    coordinates: result.common.coordinates,
+                }));
+            } else {
+                Alert.alert("게시글을 불러오는데 실패했습니다.");
+                navigation.goBack();
+            }
         };
         fetchPostDetail();
     }, []);
-    const isValidURL = (url) => typeof url === "string" && url.startsWith("http");
     return (
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
             {/* 헤더 */}
@@ -96,14 +109,13 @@ export default function AdoptNoticeDetailPage() {
                 <View style={styles.swiperWrapper}>
                     <Swiper showsButtons={false} dotColor="#ccc" activeDotColor="#333" loop={false}>
                         {postData.images.length > 0 ? (
-                            postData.images.map((img, index) => (
+                            <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={1}>
                                 <Image
-                                    key={index}
-                                    source={{ uri: img.fileURL }}
+                                    source={{ uri: postData.images[0].fileURL }}
                                     style={styles.image}
                                     contentFit="contain"
                                 />
-                            ))
+                            </TouchableOpacity>
                         ) : (
                             <Image
                                 source={require("../assets/image_not_found.jpg")}
@@ -112,6 +124,28 @@ export default function AdoptNoticeDetailPage() {
                             />
                         )}
                     </Swiper>
+
+                    {/* 전체 화면 모달 */}
+                    {postData.images.length > 0 && (
+                        <Modal
+                            visible={modalVisible}
+                            transparent={true}
+                            animationType="fade"
+                            onRequestClose={() => setModalVisible(false)}
+                        >
+                            <TouchableOpacity
+                                style={styles.modalBackground}
+                                onPress={() => setModalVisible(false)}
+                                activeOpacity={1}
+                            >
+                                <Image
+                                    source={{ uri: postData.images[0].fileURL }}
+                                    style={styles.fullscreenImage}
+                                    contentFit="contain"
+                                />
+                            </TouchableOpacity>
+                        </Modal>
+                    )}
                 </View>
 
                 <View>
@@ -214,7 +248,7 @@ const styles = StyleSheet.create({
     swiperWrapper: {
         height: 250,
         marginBottom: 16,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "black",
     },
     buttonContainer: {
         flexDirection: "row",
@@ -223,5 +257,16 @@ const styles = StyleSheet.create({
         borderTopColor: "#ccc",
         borderTopWidth: 0.5,
         paddingTop: 10,
+        marginBottom: 10,
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    fullscreenImage: {
+        width: "100%",
+        height: "100%",
     },
 });

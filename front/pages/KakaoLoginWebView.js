@@ -3,6 +3,7 @@ import { WebView } from "react-native-webview";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CommonActions } from "@react-navigation/native";
 
 export default function KakaoLoginWebView() {
     const navigation = useNavigation();
@@ -20,7 +21,6 @@ export default function KakaoLoginWebView() {
             const code = codeMatch?.[1];
             if (code) {
                 setTimeout(async () => {
-                    AsyncStorage.clear();
                     try {
                         const response = await axios.get(
                             `https://petfinderapp.duckdns.org/auth/login/kakao?code=${code}`
@@ -28,8 +28,12 @@ export default function KakaoLoginWebView() {
                         const accessToken = response.data.data.accessToken;
                         if (accessToken) {
                             await AsyncStorage.setItem("accessToken", accessToken);
-                            // await AsyncStorage.setItem("tokenExpiredAt", Date.now().toString());
-                            navigation.replace("Main");
+                            navigation.dispatch(
+                                CommonActions.reset({
+                                    index: 0,
+                                    routes: [{ name: "Main" }],
+                                })
+                            );
                         } else {
                             console.error("accessToken이 응답에 없습니다.", response.data);
                         }
