@@ -2,9 +2,9 @@ import React from "react";
 import { TouchableOpacity, Image, StyleSheet } from "react-native";
 import { normalize } from "../utils/normalize";
 
-const GpsButton = () => {
+const GpsButton = ({ onPress }) => {
     return (
-        <TouchableOpacity style={styles.alarmButton}>
+        <TouchableOpacity style={styles.alarmButton} onPress={onPress}>
             <Image source={require("../assets/alarm.png")} style={styles.alarmIcon} />
         </TouchableOpacity>
     );

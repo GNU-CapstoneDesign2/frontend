@@ -10,6 +10,7 @@ import NaverLoginWebView from "./pages/NaverLoginWebView";
 
 import MainPage from "./pages/MainPage";
 import CommunityPage from "./pages/CommunityPage";
+import AlarmPage from "./pages/AlarmPage";
 
 //게시글 작성/상세보기
 import MissingDetailPage from "./pages/MissingDetailPage";
@@ -31,12 +32,15 @@ import MyPostListPage from "./pages/MyPostListPage";
 
 //유사도 조회 페이지
 import SimilarPostsPage from "./pages/SimilarPostsPage";
+
 //게시글 수정 페이지
 import EditMissingReportPage from "./pages/EditMissingReportPage";
 import EditWitnessReportPage from "./pages/EditWitnessReportPage";
 
+//
 import { LocationProvider } from "./contexts/LocationContext";
 import { enableScreens } from "react-native-screens";
+
 enableScreens();
 registerTranslation("ko", ko);
 const Stack = createNativeStackNavigator();
@@ -52,6 +56,7 @@ export default function App() {
 
                     <Stack.Screen name="Main" component={MainPage} />
                     <Stack.Screen name="Community" component={CommunityPage} />
+                    <Stack.Screen name="Alarm" component={AlarmPage} />
 
                     <Stack.Screen name="MissingReportPage" component={MissingReportPage} />
                     <Stack.Screen name="WitnessReportPage" component={WitnessReportPage} />
