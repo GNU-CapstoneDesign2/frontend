@@ -4,8 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
 export default editMyInfo = async (requestBody, navigation) => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await axios.put("https://petfinderapp.duckdns.org/users/me", requestBody, {
             headers: {
                 Authorization: `Bearer ${token}`,

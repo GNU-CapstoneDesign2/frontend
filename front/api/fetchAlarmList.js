@@ -1,16 +1,13 @@
-//내 게시글 조회
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default fetchMyPosts = async () => {
+export default fetchAlarmList = async () => {
     try {
         const token = await AsyncStorage.getItem("accessToken");
-        const response = await axios.get("https://petfinderapp.duckdns.org/users/me/posts", {
+        const response = await axios.get("https://petfinderapp.duckdns.org/notices", {
             headers: { Authorization: `Bearer ${token}` },
-            params: { page: 0, size: 30 },
         });
-
-        return response.data.data.content;
+        if (response.status == 200) return response.data.data;
     } catch (error) {
         console.log("Error:", error.response?.data || error.message);
         Alert.alert("오류", "게시물 불러오기 실패");

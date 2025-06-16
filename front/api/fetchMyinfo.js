@@ -3,8 +3,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default fetchMyInfo = async () => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await axios.get("https://petfinderapp.duckdns.org/users/me", {
             headers: {
                 Authorization: `Bearer ${token}`,

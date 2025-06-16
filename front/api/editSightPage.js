@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 
 export default editSightPage = async (formData, postId) => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await fetch(`https://petfinderapp.duckdns.org/posts/found/${postId}`, {
             method: "PATCH",
             headers: {

@@ -4,12 +4,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CommonActions } from "@react-navigation/native";
 
 export default deleteUser = async (navigation) => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         await axios.delete("https://petfinderapp.duckdns.org/users/me", {
             headers: { Authorization: `Bearer ${token}` },
         });
-        //storage와 화면 stack을 비우고 로그인 페이지로 이동함
         await AsyncStorage.removeItem("accessToken");
         navigation.dispatch(
             CommonActions.reset({

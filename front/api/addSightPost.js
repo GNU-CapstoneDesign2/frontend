@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default addSightPost = async (formData) => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await fetch("https://petfinderapp.duckdns.org/posts/found", {
             method: "POST",
             headers: {

@@ -30,10 +30,10 @@ export async function registerForPushNotificationsAsync() {
         fcmToken = tokenResponse.data;
 
         const storedFcmToken = await AsyncStorage.getItem("storedFcmToken");
+
         if (!storedFcmToken || fcmToken !== storedFcmToken) {
             try {
                 const token = await AsyncStorage.getItem("accessToken");
-
                 const response = await axios.post(
                     "https://petfinderapp.duckdns.org/notice/token",
                     {

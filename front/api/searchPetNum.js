@@ -2,9 +2,8 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default searchPetNum = async (searchText) => {
-    const token = await AsyncStorage.getItem("accessToken");
-
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await axios.get(`https://petfinderapp.duckdns.org/map/search?query=${searchText}`, {
             headers: {
                 Authorization: `Bearer ${token}`,

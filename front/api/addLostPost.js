@@ -1,8 +1,9 @@
+import { Alert } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default addLostPost = async (formData) => {
-    const token = await AsyncStorage.getItem("accessToken");
     try {
+        const token = await AsyncStorage.getItem("accessToken");
         const response = await fetch("https://petfinderapp.duckdns.org/posts/lost", {
             method: "POST",
             headers: {
@@ -12,7 +13,7 @@ export default addLostPost = async (formData) => {
         });
 
         if (response.ok) {
-            const result = await response.json(); // JSON 파싱 완료
+            const result = await response.json();
             console.log("게시글 등록 성공, postId : ", result);
             return result;
         } else {
