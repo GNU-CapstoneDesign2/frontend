@@ -41,7 +41,7 @@ export default function WitnessReportPage() {
             latitude: null, // 위도
             longitude: null, // 경도
         },
-        description: "", //설명
+        content: "", //설명
     });
 
     //권한 요청
@@ -104,13 +104,13 @@ export default function WitnessReportPage() {
             date: formData.date,
             address: formData.address,
             petType: route.params.petType,
-            content: formData.description,
+            content: formData.content,
             coordinates: {
                 latitude: parseFloat(formData.coordinates.latitude),
                 longitude: parseFloat(formData.coordinates.longitude),
             },
-            images: null,
         };
+
         // 서버에서 @RequestPart("json")으로 JSON을 받고 있을 때 Expo에서는 JSON을 파일처럼 보내는 위장 방식 필요
         // 1. JSON을 파일로 저장
         const jsonString = JSON.stringify(jsonData);
