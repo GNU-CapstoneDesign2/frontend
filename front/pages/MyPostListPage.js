@@ -79,7 +79,7 @@ export default function MyPostListPage() {
                         </Text>
 
                         <Text>장소: {item.address}</Text>
-                        <Text>설명: {item.description}</Text>
+                        <Text>설명: {item.description || "상세내용이 없습니다"}</Text>
                     </View>
                 </View>
             </View>
@@ -108,15 +108,17 @@ export default function MyPostListPage() {
                     <Text style={styles.similarityText}>삭제</Text>
                 </TouchableOpacity>
                 {/* 유사글 조회 버튼 */}
-                <TouchableOpacity
-                    style={styles.similarityButton}
-                    onPress={() => {
-                        navigation.navigate("SimilarPostsPage", { postId: item.postId });
-                    }}
-                >
-                    <Ionicons name="search" size={16} color="#000" />
-                    <Text style={styles.similarityText}>유사도 매칭 결과</Text>
-                </TouchableOpacity>
+                {item.state === "LOST" && (
+                    <TouchableOpacity
+                        style={styles.similarityButton}
+                        onPress={() => {
+                            navigation.navigate("SimilarPostsPage", { postId: item.postId });
+                        }}
+                    >
+                        <Ionicons name="search" size={16} color="#000" />
+                        <Text style={styles.similarityText}>유사도 매칭 결과</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </TouchableOpacity>
     );
