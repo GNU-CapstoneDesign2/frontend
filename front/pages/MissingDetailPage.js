@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Linking, Alert } from "react-native";
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Swiper from "react-native-swiper";
@@ -8,10 +8,8 @@ import { formatTime, formatDate } from "../utils/formatters"; // 날짜 포맷�
 import WebView from "react-native-webview";
 //api
 import fetchLostDetail from "../api/fetchLostDetail";
-// import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
 
 export default function MissingDetailPage() {
-    // useTokenExpirationCheck();
     const route = useRoute();
     const navigation = useNavigation();
 
@@ -67,12 +65,14 @@ export default function MissingDetailPage() {
                 images: result["common"].images,
                 userId: result["common"].userId,
                 coordinates: result["common"].coordinates,
+                writerName: result["common"].userName,
+                writerProfileImg: result["common"].userImg,
             }));
         };
+
         fetchPostDetail();
     }, []);
 
-    const handleEdit = () => console.log("수정 클릭");
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top", "bottom"]}>
             {/*  커스텀 헤더 */}
@@ -87,9 +87,8 @@ export default function MissingDetailPage() {
                 {/* 사용자 정보 + 등록일 + 수정/삭제 */}
                 <View style={styles.topRow}>
                     <View style={styles.userInfo}>
-                        <Image source={{ uri: "https://placekitten.com/100/100" }} style={styles.avatar} />
-                        {/* 사용자 ID는 실제 사용자 ID또는 user의 닉네임이 필요한 것이 아닌가, 또 게시글 작성자의 프로필 사진과 닉네임은 어떻게 받아올 것인가*/}
-                        <Text style={styles.userId}>{postData.userId}</Text>
+                        <Image source={{ uri: postData.writerProfileImg }} style={styles.avatar} />
+                        <Text style={styles.userId}>{postData.writerName}</Text>
                     </View>
                     <View>
                         <Text style={styles.dateText}>{postData.createdAt} 작성됨</Text>
@@ -99,15 +98,14 @@ export default function MissingDetailPage() {
                 {/* 이미지 슬라이더 */}
                 <View style={styles.swiperWrapper}>
                     <Swiper showsButtons={false} dotColor="#ccc" activeDotColor="#333" loop={false}>
-                        {postData.images.length > 0 &&
-                            postData.images.map((img, index) => (
-                                <Image
-                                    key={index}
-                                    source={{ uri: postData.images[0].fileURL }}
-                                    style={styles.dogImage}
-                                    resizeMode="contain"
-                                />
-                            ))}
+                        {(postData.images.length > 0 ? postData.images : [{ fileURL: null }]).map((img, index) => (
+                            <Image
+                                key={index}
+                                source={img.fileURL ? { uri: img.fileURL } : require("../assets/image_not_found.jpg")}
+                                style={styles.dogImage}
+                                resizeMode="contain"
+                            />
+                        ))}
                     </Swiper>
                 </View>
 
@@ -232,7 +230,7 @@ const styles = StyleSheet.create({
     swiperWrapper: {
         height: 250,
         marginBottom: 16,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "black",
     },
     dogImage: {
         width: Dimensions.get("window").width - 32,
@@ -300,5 +298,15 @@ const styles = StyleSheet.create({
         paddingVertical: 12, // 더 높게
         borderRadius: 8,
         marginVertical: 10,
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: "black",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    fullscreenImage: {
+        width: "100%",
+        height: "100%",
     },
 });
