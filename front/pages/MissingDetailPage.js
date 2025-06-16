@@ -45,6 +45,7 @@ export default function MissingDetailPage() {
     useEffect(() => {
         const fetchPostDetail = async () => {
             const result = await fetchLostDetail(postData.postId);
+            console.log(result);
             setPostData((prev) => ({
                 ...prev,
                 name: result["lost"].name,

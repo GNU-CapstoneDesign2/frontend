@@ -39,6 +39,7 @@ export default function WitnessDetailPage() {
     useEffect(() => {
         const fetchPostDetail = async () => {
             const result = await fetchSightDetail(postData.postId);
+            console.log(result);
             if (result) {
                 setPostData((prev) => ({
                     ...prev,
