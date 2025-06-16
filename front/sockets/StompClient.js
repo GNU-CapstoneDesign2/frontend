@@ -11,8 +11,13 @@ export const connectWebSocket = (roomId, onMessageReceived) => {
     onConnect: () => {
       console.log('WebSocket 연결 성공');
       stompClient.subscribe(`/topic/chatrooms/${roomId}`, (message) => {
-        const body = JSON.parse(message.body);
-        onMessageReceived(body);
+        try {
+          const body = JSON.parse(message.body);
+          console.log("받은 WebSocket 메시지:", body);
+          onMessageReceived(body);
+        } catch (e) {
+          console.error("메시지 파싱 실패:", message.body);
+        }
       });
     },
     onStompError: (frame) => {
@@ -31,6 +36,8 @@ export const sendMessage = (roomId, senderId, text, post = null) => {
     message: text,
     post,
   };
+
+  console.log("보내는 메시지 payload:", JSON.stringify(payload));
 
   stompClient.publish({
     destination: `/app/chatrooms/${roomId}`,
