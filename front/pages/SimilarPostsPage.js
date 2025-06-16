@@ -1,6 +1,6 @@
 //유사 게시글 조회 페이지
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -10,99 +10,99 @@ import { SCREEN_HEIGHT, SCREEN_WIDTH, normalize } from "../utils/normalize";
 
 import LottieView from "lottie-react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import EventSource from "react-native-event-source";
+
+import { formatDate, formatTime } from "../utils/formatters";
 export default function SimilarPostsPage() {
     const navigation = useNavigation();
     const route = useRoute();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const esRef = useRef(null);
 
     useEffect(() => {
-        // TODO: 실제 API 엔드포인트로 교체
-        console.log(route.params.postId); // 호출에 사용 되어야할 postId 값
-
         const fetchData = async () => {
-            setLoading(true);
-            setError(null);
             try {
-                // 예시: fetch("/api/similar-posts")
-                // 아래는 목업 데이터 (실제 API 호출로 교체)
-                const response = {
-                    status: 200,
-                    data: {
-                        content: [
-                            {
-                                postId: 101,
-                                state: "목격",
-                                date: "2025년 04월 08일 15시 30분",
-                                address: "서울 강남구",
-                                description: "실종 대상에 대한 상세 설명",
-                                imageUrl: "https://cdn.pixabay.com/photo/2017/10/04/02/24/puppy-2814858_640.jpg",
-                            },
-                            {
-                                postId: 102,
-                                state: "입양대기",
-                                date: "2025년 04월 07일 12시 00분",
-                                address: "부산 해운대구",
-                                description: "실종 대상에 대한 간략한 설명",
-                                imageUrl: "https://cdn.pixabay.com/photo/2017/10/04/02/24/puppy-2814858_640.jpg",
-                            },
-                        ],
-                    },
-                };
-                // 실제 사용시 아래 주석 해제
-                // const res = await fetch('API_URL');
-                // const response = await res.json();
-                if (response.status === 200) {
-                    //응답 콘텐츠가 있으면
-                    setPosts(response.data.content);
-                } else {
-                    setPosts([]);
-                }
-            } catch (e) {
-                setError("오류가 발생했습니다.");
-                setPosts([]);
-            } finally {
-                //유사도 결과 목록 조회 api가 호출 완료되면 로딩 화면 상태를 false로 변경
-                //임시로 10초 후 종료 설정
-                setTimeout(() => {
+                const token = await AsyncStorage.getItem("accessToken");
+                const url = `https://petfinderapp.duckdns.org/similarity?postId=${route.params.postId}&token=${token}`;
+                const headers = { Accept: "text/event-stream" };
+                const es = new EventSource(url, { headers });
+                esRef.current = es;
+                es.addEventListener("open", () => console.log("SSE 연결 열림"));
+                es.addEventListener("ping", (e) => console.log("SSE 메시지:", e.data));
+                es.addEventListener("complete", (e) => {
                     setLoading(false);
-                }, 10000);
+                    const result = JSON.parse(e.data);
+                    console.log(result.items);
+                    setPosts(result.items);
+                    es.close();
+                });
+                es.addEventListener("error", (e) => {
+                    console.error("SSE 에러:", e);
+                    es.close();
+                    esRef.current = null;
+                });
+            } catch (e) {
+                console.error("[SSE] 요청 실패", e);
             }
         };
+
         fetchData();
-    }, []);
+
+        return () => {
+            if (esRef.current) {
+                esRef.current.close();
+                esRef.current = null;
+            }
+        };
+    }, [route.params.postId]); // postId가 바뀔 때만 재실행되도록 의존성 지정
 
     const stateBadgeColor = (state) => {
         switch (state) {
-            case "실종":
+            case "LOST":
                 return { backgroundColor: "#1abc54" };
-            case "공고중":
+            case "SIGHT":
                 return { backgroundColor: "#0057ff" };
-            case "목격":
+            case "NOTICE":
                 return { backgroundColor: "#1abc54" };
-            case "입양대기":
+            case "ADOPT":
                 return { backgroundColor: "#ffd600" };
             default:
                 return { backgroundColor: "#ccc" };
         }
     };
-
+    const filterMap = {
+        LOST: "실종",
+        SIGHT: "목격",
+        NOTICE: "공고중",
+        ADOPT: "입양대기",
+    };
+    const navigateRoute = (state) => {
+        switch (state) {
+            case "SIGHT":
+                return "WitnessDetailPage";
+            case "NOTICE":
+                return "AdoptNoticeDetailPage";
+            case "ADOPT":
+                return "AdoptNoticeDetailPage";
+        }
+    };
     return (
         <PaperProvider>
             <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
                 <View style={{ flex: 1 }}>
                     {/* 헤더 */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.navigate("Main")}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Ionicons name="arrow-back" size={normalize(24)} color="black" />
                         </TouchableOpacity>
                         <Text style={styles.title}>유사도 매칭 결과</Text>
                     </View>
-                    {/* 컨텐츠 화면 */}
+
                     <View style={styles.content}>
-                        {/* gif 애니메이션 로딩 화면 */}
                         {loading ? (
+                            // 로딩 화면
                             <View style={{ alignItems: "center", marginTop: 30 }}>
                                 <LottieView
                                     source={require("../assets/loading.json")}
@@ -123,40 +123,87 @@ export default function SimilarPostsPage() {
                                         marginBottom: 100,
                                     }}
                                 >
-                                    분석 중...
+                                    유사한 동물을 찾고있어요
                                 </Text>
                             </View>
-                        ) : error ? (
-                            //에러 발생 화면
-                            <Text style={{ textAlign: "center", color: "red", marginTop: 30 }}>{error}</Text>
-                        ) : posts.length === 0 ? (
-                            //유사 게시글 없을 때
-                            <Text style={{ textAlign: "center", marginTop: 30 }}>
-                                유사한 게시글이 존재하지 않습니다.
-                            </Text>
-                        ) : (
-                            posts.map((post) => (
-                                <View key={post.postId} style={styles.card}>
-                                    <View
-                                        style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}
-                                    >
-                                        <View style={styles.imageWrapper}>
-                                            <Image source={{ uri: post.imageUrl }} style={styles.image} />
-                                        </View>
-                                        <View style={{ flex: 1, marginLeft: 10 }}>
-                                            <View style={[styles.stateBadge, stateBadgeColor(post.state)]}>
-                                                <Text style={styles.stateBadgeText}>{post.state}</Text>
-                                            </View>
-                                            <Text style={styles.infoText}>시간: {post.date ? post.date : ""}</Text>
-                                            <Text style={styles.infoText}>장소: {post.address}</Text>
-                                            <Text style={styles.infoText}>설명: {post.description}</Text>
-                                        </View>
-                                    </View>
+                        ) : !posts && posts.length === 0 ? (
+                            // 유사 게시글 없음
+                            <View
+                                style={{
+                                    flex: 1,
+                                    flexDirection: "column",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    marginBottom: 100,
+                                }}
+                            >
+                                <View style={{ marginBottom: 30 }}>
+                                    <Image
+                                        source={require("../assets/no-results.png")}
+                                        style={{ width: 200, height: 200 }}
+                                    ></Image>
                                 </View>
-                            ))
-                            // <View>
-                            //     <Text>adasd</Text>
-                            // </View>
+                                <Text style={{ textAlign: "center", fontWeight: "bold", color: "grey" }}>
+                                    유사한 동물을 찾지 못했어요
+                                </Text>
+                            </View>
+                        ) : (
+                            <FlatList
+                                data={posts}
+                                keyExtractor={(item) => item.similarPostId}
+                                contentContainerStyle={{ paddingBottom: 20 }}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            navigation.navigate(navigateRoute(item.postState), {
+                                                postId: item.similarPostId,
+                                            });
+                                        }}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={styles.card}>
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    justifyContent: "center",
+                                                    alignItems: "center",
+                                                }}
+                                            >
+                                                <View style={styles.imageWrapper}>
+                                                    <Image source={{ uri: item.imageUrl }} style={styles.image} />
+                                                </View>
+                                                <View style={{ flex: 1, marginLeft: 10 }}>
+                                                    <View style={[styles.stateBadge, stateBadgeColor(item.postState)]}>
+                                                        <Text style={styles.stateBadgeText}>
+                                                            {filterMap[item.postState]}
+                                                        </Text>
+                                                    </View>
+                                                    <Text style={styles.infoText}>
+                                                        시간:{" "}
+                                                        {formatDate(item.date.split("T")[0]) +
+                                                            " " +
+                                                            formatTime(item.date.split("T")[1]) || ""}
+                                                    </Text>
+                                                    <Text
+                                                        style={styles.infoText}
+                                                        numberOfLines={1}
+                                                        ellipsizeMode="tail"
+                                                    >
+                                                        장소: {item.address}
+                                                    </Text>
+                                                    <Text
+                                                        style={styles.infoText}
+                                                        numberOfLines={1}
+                                                        ellipsizeMode="tail"
+                                                    >
+                                                        설명: {item.description}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                )}
+                            />
                         )}
                     </View>
                     <NavigationBar />
@@ -185,8 +232,6 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        // justifyContent: "center",
-        padding: SCREEN_WIDTH * 0.03,
         backgroundColor: "#fff",
     },
     card: {
@@ -194,9 +239,9 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderWidth: 1,
         borderColor: "#ddd",
-        borderRadius: 8,
-        marginBottom: 12,
-        padding: 12,
+        marginBottom: 7,
+        elevation: 4,
+        padding: 6,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
