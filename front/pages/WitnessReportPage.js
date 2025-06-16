@@ -146,9 +146,12 @@ export default function WitnessReportPage() {
 
         //4. 목격 글 작성 api 호출
         const result = await addSightPost(formBody); //결과로 postId
-        if (result) {
-            navigation.navigate("SimilarPostsPage", { postId: result });
-        }
+        navigation.dispatch(
+            CommonActions.reset({
+                index: 0,
+                routes: [{ name: "Main" }],
+            })
+        );
     };
 
     return (

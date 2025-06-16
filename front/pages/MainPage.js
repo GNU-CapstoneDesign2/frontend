@@ -29,9 +29,8 @@ import { formatTime, formatDate } from "../utils/formatters";
 import fetchPosts from "../api/fetchPosts";
 import fetchMarkers from "../api/fetchMarkers";
 import searchPetNum from "../api/searchPetNum";
-
+//알림 권한 요청
 import { registerForPushNotificationsAsync } from "../api/firebaseMessaging";
-import * as Notifications from "expo-notifications";
 
 export default function MainPage() {
     const screenHeight = Dimensions.get("window").height;
@@ -61,7 +60,7 @@ export default function MainPage() {
 
     // 바텀시트 변수
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => [SCREEN_HEIGHT * 0.05, SCREEN_HEIGHT * 0.3, SCREEN_HEIGHT * 0.7], [SCREEN_HEIGHT]);
+    const snapPoints = useMemo(() => [SCREEN_HEIGHT * 0.05, SCREEN_HEIGHT * 0.3, SCREEN_HEIGHT * 0.6], [SCREEN_HEIGHT]);
     const [sheetIndex, setSheetIndex] = useState(1);
 
     // 바텀시트 애니메이션 위치 추적
@@ -170,9 +169,9 @@ export default function MainPage() {
             setPosts(postsData);
         };
         loadPosts();
+
         const loadMarkers = async () => {
             const markersData = await fetchMarkers({ bounds, filterQuery });
-
             // 좌표 중복 마커 제거
             const uniqueMarkersMap = new Map();
             markersData.forEach((item) => {
@@ -183,7 +182,6 @@ export default function MainPage() {
             });
             const uniqueMarkers = Array.from(uniqueMarkersMap.values());
 
-            console.log(uniqueMarkers);
             webViewRef.current?.postMessage(
                 JSON.stringify({
                     type: "markerData",
@@ -234,14 +232,14 @@ export default function MainPage() {
         // 로그인 후  알람 권한을 요청하고 fcm 토큰을 받는 함수 -> 받아서 서버에 전송
         registerForPushNotificationsAsync();
 
-        //accessToken 확인용 코드
-        // const fetchToken = async () => {
-        //     const accessToken = await AsyncStorage.getItem("accessToken");
-        //     console.log("accessToken : ", accessToken);
-        // };
-        // fetchToken();
+        // accessToken 확인용 코드
+        const fetchToken = async () => {
+            const accessToken = await AsyncStorage.getItem("accessToken");
+            console.log("accessToken : ", accessToken);
+        };
+        fetchToken();
 
-        //fcm 토큰 확인 코드
+        // fcm 토큰 확인 코드
         // const asd = async () => {
         //     const fcm = await AsyncStorage.getItem("storedFcmToken");
         //     console.log("fcmToken : ", fcm);

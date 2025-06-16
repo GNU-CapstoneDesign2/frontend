@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import NavigationBar from "../components/NavigationBar/NavigationBar";
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from "../utils/normalize";
 //api
