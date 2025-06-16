@@ -32,47 +32,29 @@ export default function ChatRoomPage() {
   const [myPosts, setMyPosts] = useState([]); // 내 게시글 목록
   const [chatRoomInfo, setChatRoomInfo] = useState(null); // 채팅방 정보 (게시글, 참여자 등)
 
-  // 채팅방 상세정보 (게시글 + 참여자 목록) 불러오기, 일단 가데이터
+  // 채팅방 상세정보 (게시글 + 참여자 목록) 불러오기
   const fetchRoomInfo = async () => {
-    // const token = await AsyncStorage.getItem("accessToken");
-    // const res = await axios.get(`https://petfinderapp.duckdns.org/chatrooms/${roomId}`, {
-    //   headers: { Authorization: `Bearer ${token}` },
-    // });
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      console.log("보낸 토큰:", token);
 
-    const res = {
-      data: {
-        data: {
-          roomId: roomId,
-          post: {
-            postId: 123,
-            state: "실종",
-            date: "2025-04-08T15:30:00Z",
-            address: "서울 강남구",
-            description: "실종 대상에 대한 상세 설명",
-            imageUrl: "https://example.com/image1.jpg"
-          },
-          participants: [
-            {
-              userId: 1001,
-              name: "홍길동",
-              profileImage: "https://example.com/profiles/hong.jpg",
-              isMe: true
-            },
-            {
-              userId: 1002,
-              name: "Alice",
-              profileImage: "https://example.com/profiles/alice.jpg",
-              isMe: false
-            }
-          ]
-        }
-      }
-    };
+      const res = await axios.get(`https://petfinderapp.duckdns.org/chatrooms/${roomId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    const myInfo = res.data.data.participants.find((p) => p.isMe);
-    setMyId(myInfo.userId);
-    setChatRoomInfo(res.data.data);
+      console.log("채팅방 상세정보 응답:", res.data);
+      console.log("participants 배열:", res.data.data.participants);
+
+      const myInfo = res.data.data.participants.find((p) => p.me);
+      console.log("me인 사용자 정보:", myInfo);
+
+      setMyId(myInfo?.userId);
+      setChatRoomInfo(res.data.data);
+    } catch (err) {
+      console.error("fetchRoomInfo 에러:", err.response?.data || err.message);
+    }
   };
+
 
   // 내 게시글 목록 불러오기 (공유용)
   const fetchMyPosts = async () => {
@@ -87,6 +69,8 @@ export default function ChatRoomPage() {
           params: { page: 0, size: 20 },
         }
       );
+
+      console.log("내 게시물 목록 응답:", response.data);
 
       const formatted = response.data.data.content.map((item) => ({
         id: item.postId.toString(),
@@ -104,53 +88,59 @@ export default function ChatRoomPage() {
     }
   };
 
-  // 초기 메시지 불러오기, 일단 가데이터
   const fetchInitialMessages = async () => {
-    // const data = await fetchMessages(roomId);
-    
-    const data = [
-      {
-        senderId: 1002,
-        message: "안녕하세요!",
-        createAt: "2025-04-08T15:30:00Z",
-        post: null,
-      },
-      {
-        senderId: 1001,
-        message: "반갑습니다!",
-        createAt: "2025-04-08T15:31:00Z",
-        post: {
-          state: "실종",
-          date: "2025-04-08T14:00:00Z",
-          address: "서울 강남구",
-          description: "포메라니안 찾습니다.",
-          imageUrl: "https://example.com/image1.jpg",
-        },
-      },
-    ];
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
+      const response = await axios.get(
+        `https://petfinderapp.duckdns.org/chatrooms/${roomId}/messages`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { page: 0, size: 20 },
+        }
+      );
 
-    const formatted = data.map((msg) => ({
-      id: Date.now().toString() + Math.random(),
-      sender: String(msg.senderId) === String(myId) ? "me" : "other",
-      text: msg.message,
-      time: new Date(msg.createAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-      date: new Date(msg.createAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }),
-      post: msg.post
-        ? {
-            status: msg.post.state,
-            time: new Date(msg.post.date).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-            location: msg.post.address,
-            description: msg.post.description,
-            imageUrl: msg.post.imageUrl,
-          }
-        : null,
-    }));
-    setMessages(formatted);
+      const data = response.data.data.content;
+
+      console.log("초기 메시지 응답:", data);
+
+      const formatted = data.map((msg) => ({
+        id: Date.now().toString() + Math.random(),
+        sender: String(msg.senderId) === String(myId) ? "me" : "other",
+        text: msg.message,
+        time: new Date(msg.createAt).toLocaleTimeString("ko-KR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        date: new Date(msg.createAt).toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        }),
+        post: msg.post
+          ? {
+              status: msg.post.state,
+              time: new Date(msg.post.date).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              location: msg.post.address,
+              description: msg.post.description,
+              imageUrl: msg.post.imageUrl,
+            }
+          : null,
+      }));
+      setMessages(formatted);
+    } catch (err) {
+      console.error("채팅 메시지 조회 실패:", err.response?.data || err.message);
+    }
   };
+
 
   // 컴포넌트 mount 시 채팅방 정보 불러오기
   useEffect(() => {
     (async () => {
+      console.log("fetchRoomInfo 실행됨");
       await fetchRoomInfo();
     })();
   }, []);
@@ -158,26 +148,42 @@ export default function ChatRoomPage() {
   // 내 ID 로드 후 메시지 불러오기 & WebSocket 연결
   useEffect(() => {
     if (myId === null) return;
+
+    console.log("myId 값 확인:", myId);
+    console.log("roomId 값 확인:", roomId);
+
     fetchInitialMessages();
 
     connectWebSocket(roomId, (msg) => {
+      console.log("받은 WebSocket 메시지:", msg);
       const isMe = String(msg.senderId) === String(myId);
+      const ts = msg.createAt ? new Date(msg.createAt) : new Date();
       const formattedMsg = {
-        id: Date.now().toString() + Math.random(),
+        id: msg.messageId?.toString() || Date.now().toString() + Math.random(),
         sender: isMe ? "me" : "other",
         text: msg.message,
-        time: new Date(msg.createAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-        date: new Date(msg.createAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }),
+        time: ts.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+        date: ts.toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        }),
         post: msg.post
           ? {
               status: msg.post.state,
-              time: new Date(msg.post.date).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+              time: new Date(msg.post.date).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
               location: msg.post.address,
               description: msg.post.description,
               imageUrl: msg.post.imageUrl,
             }
           : null,
       };
+
+
       setMessages((prev) => [...prev, formattedMsg]);
     });
 
@@ -189,47 +195,116 @@ export default function ChatRoomPage() {
   // 메시지 전송 핸들러
   const handleSend = () => {
     if (!message.trim()) return;
-    sendMessage(roomId, myId, message);
+
+    // 1) 서버로 전송
+    sendMessage(roomId, myId, message, null);
+
+    // 2) 입력창 초기화
     setMessage("");
+
+    // 3) “안녕하세요” 하드코딩 에코
+    if (message === "안녕하세요") {
+      setTimeout(() => {
+        const ts = new Date();
+        const reply = {
+          id: Date.now().toString() + Math.random(),
+          sender: "other",
+          text: "안녕하세요",
+          time: ts.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
+          date: ts.toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long",
+          }),
+          post: null,
+        };
+        setMessages((prev) => [...prev, reply]);
+      }, 5000);
+    }
   };
+
+ // // 메시지 전송 핸들러
+ // const handleSend = () => {
+ //  if (!message.trim()) return;
+ //
+ //  console.log("전송할 메시지:", message);
+ //  console.log("내 ID:", myId);
+ //  console.log("roomId:", roomId);
+ //
+ //  sendMessage(roomId, myId, message, null);
+ //  setMessage("");
+ //};
 
   // 게시글 선택 공유 핸들러
   const handleSelectPost = (post) => {
-    sendMessage(roomId, myId, "해당 게시글을 확인해주세요.", post);
+    console.log("공유할 게시글 post:", post);
+
+    sendMessage(roomId, myId, "해당 게시글을 확인해주세요.", {
+      postId: parseInt(post.id),
+      state: post.status === "실종" ? "LOST" : "SIGHT",
+      date: new Date().toISOString(),
+      address: post.location,
+      description: post.description,
+      imageUrl: post.imageUrl
+    });
     setShowPostPicker(false);
   };
 
   // 채팅 메시지 렌더링 함수
-  const renderItem = ({ item }) => {
+  const renderItem = ({ item, index }) => {
     const isMe = item.sender === "me";
 
-    if (item.post) {
-      return (
-        <View style={[styles.sharedPostContainer, isMe ? styles.myMessage : styles.otherMessage]}>
-          <Image source={{ uri: item.post.imageUrl }} style={styles.sharedPostImage} />
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={{ fontWeight: "bold", color: "red" }}>{item.post.status}</Text>
-            <Text>시간: {item.post.time}</Text>
-            <Text>장소: {item.post.location}</Text>
-            <Text>설명: {item.post.description}</Text>
-          </View>
-        </View>
-      );
-    }
+    // 이전 메시지와 날짜 비교
+    const showDate =
+      index === 0 ||
+      messages[index - 1].date !== item.date;
 
     return (
       <>
-        {item.date && <Text style={styles.dateText}>{item.date}</Text>}
-        <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.otherMessage]}>
-          {!isMe && <Image source={require("../assets/avatar.png")} style={styles.avatar} />}
-          <View style={styles.bubble}>
-            <Text style={styles.messageText}>{item.text}</Text>
-            <Text style={styles.timeText}>{item.time}</Text>
+        {showDate && <Text style={styles.dateText}>{item.date}</Text>}
+
+        {item.post && item.text === "해당 게시글을 확인해주세요." ? (
+          <View style={[styles.sharedPostContainer, isMe ? styles.myMessage : styles.otherMessage]}>
+            <Image source={{ uri: item.post.imageUrl }} style={styles.sharedPostImage} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              {/* 상태 뱃지 */}
+              <View
+                style={[
+                  styles.topPostBadge,
+                  {
+                    alignSelf: "flex-start",
+                    marginTop: -10,
+                    marginBottom: 4,
+                    backgroundColor:
+                      item.post.status === "LOST" ? "#ff3b30" : "#0057ff",
+                  },
+                ]}
+              >
+              <Text style={{ color: "white", fontWeight: "bold" }}>
+                {item.post.status === "LOST" ? "실종" : "목격"}
+              </Text>
+              </View>
+
+              <Text>시간: {item.post.time}</Text>
+              <Text>장소: {item.post.location}</Text>
+              <Text>설명: {item.post.description}</Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.otherMessage]}>
+            {!isMe && <Image source={require("../assets/avatar.png")} style={styles.avatar} />}
+            <View style={styles.bubble}>
+              <Text style={styles.messageText}>{item.text}</Text>
+              <Text style={styles.timeText}>{item.time}</Text>
+            </View>
+          </View>
+        )}
       </>
     );
   };
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -244,18 +319,39 @@ export default function ChatRoomPage() {
       </View>
 
       {/* 상단 게시글 정보 */}
-      {chatRoomInfo?.post && (
-        <View style={styles.topPostContainer}>
+          {chatRoomInfo?.post && (
+            <TouchableOpacity
+              style={styles.topPostContainer}
+              activeOpacity={0.7}
+              onPress={() => {
+                const { postId, state } = chatRoomInfo.post;
+                if (state === "SIGHT") {
+                  navigation.navigate("WitnessDetailPage", { postId });
+                } else {
+                  navigation.navigate("MissingDetailPage", { postId });
+                }
+              }}
+            >
           <Image source={{ uri: chatRoomInfo.post.imageUrl }} style={styles.topPostImage} />
           <View style={styles.topPostTextWrapper}>
             <Text style={styles.topPostLabel}>시간: <Text style={styles.topPostValue}>{new Date(chatRoomInfo.post.date).toLocaleString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</Text></Text>
             <Text style={styles.topPostLabel}>장소: <Text style={styles.topPostValue}>{chatRoomInfo.post.address}</Text></Text>
             <Text style={styles.topPostLabel}>설명: <Text style={styles.topPostValue}>{chatRoomInfo.post.description}</Text></Text>
           </View>
-          <View style={styles.topPostBadge}>
-            <Text style={{ color: "white", fontWeight: "bold" }}>{chatRoomInfo.post.state}</Text>
+          <View
+            style={[
+              styles.topPostBadge,
+              {
+                backgroundColor:
+                  chatRoomInfo.post.state === "LOST" ? "#ff3b30" : "#0057ff",
+              },
+            ]}
+          >
+            <Text style={{ color: "white", fontWeight: "bold" }}>
+              {chatRoomInfo.post.state === "LOST" ? "실종" : "목격"}
+            </Text>
           </View>
-        </View>
+         </TouchableOpacity>
       )}
 
       {/* 채팅 메시지 목록 + 입력창 */}
@@ -343,7 +439,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "red",
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 8,

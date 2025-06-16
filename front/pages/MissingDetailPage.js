@@ -6,6 +6,7 @@ import Swiper from "react-native-swiper";
 import { Ionicons } from "@expo/vector-icons";
 import { formatTime, formatDate } from "../utils/formatters"; // 날짜 포맷팅 유틸리티 함수
 import WebView from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 //api
 import fetchLostDetail from "../api/fetchLostDetail";
 // import useTokenExpirationCheck from "../hooks/useTokenExpirationCheck";
@@ -169,8 +170,43 @@ export default function MissingDetailPage() {
             <View style={styles.rewardBoxContainer}>
                 <View style={styles.rewardBox}>
                     <Text style={styles.rewardText}>사례금 : {postData.reward} 원</Text>
-                    <TouchableOpacity style={styles.chatButton}>
-                        <Text style={{ color: "white" }}>채팅하기</Text>
+                    <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={async () => {
+                        try {
+                        const token = await AsyncStorage.getItem("accessToken");
+                        if (!token) {
+                            Alert.alert("로그인이 필요합니다");
+                            return;
+                        }
+
+                        const response = await fetch("https://petfinderapp.duckdns.org/chatrooms", {
+                            method: "POST",
+                            headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ postId: postData.postId }),
+                        });
+
+                        const result = await response.json();
+
+                        console.log("응답 상태코드:", response.status);
+                        console.log("응답 바디:", result);
+                        console.log("보낸 postId:", postData.postId);
+
+                        if ((response.status === 200 || response.status === 201) && result.data?.roomId) {
+                        navigation.navigate("ChatRoomPage", { roomId: result.data.roomId });
+                        } else {
+                        Alert.alert("채팅방 생성 실패", result.message || "알 수 없는 오류");
+                        }
+                        } catch (error) {
+                        console.error("채팅방 생성 오류:", error);
+                        Alert.alert("오류", "채팅방 생성 중 문제가 발생했습니다.");
+                        }
+                    }}
+                    >
+                    <Text style={{ color: "white" }}>채팅하기</Text>
                     </TouchableOpacity>
                 </View>
             </View>
