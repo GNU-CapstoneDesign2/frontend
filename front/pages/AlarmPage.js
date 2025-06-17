@@ -14,7 +14,6 @@ export default function AlarmPage() {
     useEffect(() => {
         const getAlarmList = async () => {
             const result = await fetchAlarmList();
-            console.log(result[0].redirect.split(",")[1]);
             const newList = result.filter((item) => !item.isRead);
             const oldList = result.filter((item) => item.isRead);
             const combined = [...newList, ...oldList];

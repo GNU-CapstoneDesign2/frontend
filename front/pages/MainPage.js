@@ -231,20 +231,6 @@ export default function MainPage() {
     useEffect(() => {
         // 로그인 후  알람 권한을 요청하고 fcm 토큰을 받는 함수 -> 받아서 서버에 전송
         registerForPushNotificationsAsync();
-
-        // accessToken 확인용 코드
-        const fetchToken = async () => {
-            const accessToken = await AsyncStorage.getItem("accessToken");
-            console.log("accessToken : ", accessToken);
-        };
-        fetchToken();
-
-        // fcm 토큰 확인 코드
-        // const asd = async () => {
-        //     const fcm = await AsyncStorage.getItem("storedFcmToken");
-        //     console.log("fcmToken : ", fcm);
-        // };
-        // asd();
     }, []);
     return (
         <GestureHandlerRootView>

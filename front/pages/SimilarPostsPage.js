@@ -77,6 +77,7 @@ export default function SimilarPostsPage() {
         SIGHT: "목격",
         NOTICE: "공고중",
         ADOPT: "입양대기",
+        END: "종료",
     };
     const navigateRoute = (state) => {
         switch (state) {
@@ -85,6 +86,8 @@ export default function SimilarPostsPage() {
             case "NOTICE":
                 return "AdoptNoticeDetailPage";
             case "ADOPT":
+                return "AdoptNoticeDetailPage";
+            case "END":
                 return "AdoptNoticeDetailPage";
         }
     };

@@ -1,23 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, Dimensions, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Swiper from "react-native-swiper";
-import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+
 import { formatDate, formatTime } from "../utils/formatters";
-//api
+
 import fetchAdoptNoticePostDetail from "../api/fetchAdoptNoticePostDetail";
 
 export default function AdoptNoticeDetailPage() {
     const route = useRoute();
     const navigation = useNavigation();
-
-    const handleCall = () => {
-        Linking.openURL(`tel:${postData.sheleterPhone}`);
-    };
-
+    const [modalVisible, setModalVisible] = useState(false);
     const [postData, setPostData] = useState({
         postId: route.params.postId,
         state: "",
@@ -42,8 +39,9 @@ export default function AdoptNoticeDetailPage() {
             longitude: null,
         },
     });
-    const [modalVisible, setModalVisible] = useState(false);
-
+    const handleCall = () => {
+        Linking.openURL(`tel:${postData.sheleterPhone}`);
+    };
     useEffect(() => {
         const fetchPostDetail = async () => {
             const result = await fetchAdoptNoticePostDetail(postData.postId);
@@ -93,6 +91,7 @@ export default function AdoptNoticeDetailPage() {
         };
         fetchPostDetail();
     }, []);
+
     return (
         <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
             {/* 헤더 */}
