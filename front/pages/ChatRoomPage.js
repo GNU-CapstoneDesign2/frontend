@@ -36,17 +36,12 @@ export default function ChatRoomPage() {
   const fetchRoomInfo = async () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
-      console.log("보낸 토큰:", token);
 
       const res = await axios.get(`https://petfinderapp.duckdns.org/chatrooms/${roomId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log("채팅방 상세정보 응답:", res.data);
-      console.log("participants 배열:", res.data.data.participants);
-
       const myInfo = res.data.data.participants.find((p) => p.me);
-      console.log("me인 사용자 정보:", myInfo);
 
       setMyId(myInfo?.userId);
       setChatRoomInfo(res.data.data);
@@ -69,8 +64,6 @@ export default function ChatRoomPage() {
           params: { page: 0, size: 20 },
         }
       );
-
-      console.log("내 게시물 목록 응답:", response.data);
 
       const formatted = response.data.data.content.map((item) => ({
         id: item.postId.toString(),
@@ -100,8 +93,6 @@ export default function ChatRoomPage() {
       );
 
       const data = response.data.data.content;
-
-      console.log("초기 메시지 응답:", data);
 
       const formatted = data.map((msg) => ({
         id: Date.now().toString() + Math.random(),
@@ -140,7 +131,6 @@ export default function ChatRoomPage() {
   // 컴포넌트 mount 시 채팅방 정보 불러오기
   useEffect(() => {
     (async () => {
-      console.log("fetchRoomInfo 실행됨");
       await fetchRoomInfo();
     })();
   }, []);
@@ -149,13 +139,9 @@ export default function ChatRoomPage() {
   useEffect(() => {
     if (myId === null) return;
 
-    console.log("myId 값 확인:", myId);
-    console.log("roomId 값 확인:", roomId);
-
     fetchInitialMessages();
 
     connectWebSocket(roomId, (msg) => {
-      console.log("받은 WebSocket 메시지:", msg);
       const isMe = String(msg.senderId) === String(myId);
       const ts = msg.createAt ? new Date(msg.createAt) : new Date();
       const formattedMsg = {
@@ -192,53 +178,15 @@ export default function ChatRoomPage() {
     };
   }, [myId]);
 
-  // 메시지 전송 핸들러
-  const handleSend = () => {
-    if (!message.trim()) return;
-
-    // 1) 서버로 전송
-    sendMessage(roomId, myId, message, null);
-
-    // 2) 입력창 초기화
-    setMessage("");
-
-    // 3) “안녕하세요” 하드코딩 에코
-    if (message === "안녕하세요") {
-      setTimeout(() => {
-        const ts = new Date();
-        const reply = {
-          id: Date.now().toString() + Math.random(),
-          sender: "other",
-          text: "안녕하세요",
-          time: ts.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-          date: ts.toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "long",
-          }),
-          post: null,
-        };
-        setMessages((prev) => [...prev, reply]);
-      }, 5000);
-    }
-  };
-
- // // 메시지 전송 핸들러
- // const handleSend = () => {
- //  if (!message.trim()) return;
- //
- //  console.log("전송할 메시지:", message);
- //  console.log("내 ID:", myId);
- //  console.log("roomId:", roomId);
- //
- //  sendMessage(roomId, myId, message, null);
- //  setMessage("");
- //};
+ // 메시지 전송 핸들러
+ const handleSend = () => {
+   if (!message.trim()) return;
+   sendMessage(roomId, myId, message, null);
+   setMessage("");
+ };
 
   // 게시글 선택 공유 핸들러
   const handleSelectPost = (post) => {
-    console.log("공유할 게시글 post:", post);
 
     sendMessage(roomId, myId, "해당 게시글을 확인해주세요.", {
       postId: parseInt(post.id),
